@@ -355,7 +355,7 @@ impl Vypers {
     }
 
     /// Compile multiple vyper contracts concurrently on new threads, updates the ABI field in Vypers
-    pub async fn compile(&mut self) -> Result<(), Box<dyn Error>> {
+    pub async fn compile_many(&mut self) -> Result<(), Box<dyn Error>> {
         let path = Arc::new(self.path_to_code.clone());
         let mut out_vec: Vec<String> = Vec::with_capacity(self.path_to_code.len());
         let mut threads = vec![];
@@ -384,7 +384,7 @@ impl Vypers {
     }
 
     /// Compile multiple vyper contracts concurrently on new threads, updates the ABI field in Vypers. `Ver` arg is for specifying EVM version to compile each contract to.
-    pub async fn compile_ver(&mut self, ver: Evm) -> Result<(), Box<dyn Error>> {
+    pub async fn compile_many_ver(&mut self, ver: Evm) -> Result<(), Box<dyn Error>> {
         let path = Arc::new(self.path_to_code.clone());
         let mut out_vec: Vec<String> = Vec::with_capacity(self.path_to_code.len());
         let version = ver.to_string();
@@ -424,7 +424,7 @@ impl Vypers {
     }
 
     /// Generates ABIs for each vyper contract concurrently
-    pub async fn abi(&self) -> Result<(), Box<dyn Error>> {
+    pub async fn abi_many(&self) -> Result<(), Box<dyn Error>> {
         let c_path = Arc::new(self.path_to_code.clone());
         let abi_path = Arc::new(self.abi.clone());
         let mut threads = vec![];
@@ -454,6 +454,35 @@ impl Vypers {
             child_thread.await.unwrap()?
         }
         Ok(())
+    }
+
+    pub async fn abi_json_many(&self) -> Result<Vec<Value>, Box<dyn Error>> {
+        let c_path = Arc::new(self.path_to_code.clone());
+        let mut threads = vec![];
+        for i in 0..self.path_to_code.len() {
+            let c = Arc::clone(&c_path); 
+            let cthread = tokio::spawn(async move {
+                let compiler_output = Command::new("vyper")
+                    .arg("-f")
+                    .arg("abi")
+                    .arg(&c[i])
+                    .output()?;
+                if compiler_output.status.success() {
+                    let json = serde_json::from_str::<Value>(&String::from_utf8_lossy(
+                        &compiler_output.stdout,
+                    ))?;
+                    Ok(json)
+                } else {
+                    bail!(String::from_utf8_lossy(&compiler_output.stderr).to_string())
+                }
+            });
+            threads.push(cthread);
+        }
+        let mut res_vec = Vec::new();
+        for child_thread in threads {
+            res_vec.push(child_thread.await??);
+        }
+        Ok(res_vec)
     }
 }
 

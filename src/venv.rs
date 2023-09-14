@@ -1,11 +1,7 @@
-use crate::vyper::{Evm, Vyper};
+use crate::vyper::{Evm, Vyper, Vypers};
 use anyhow::bail;
 use serde_json::{to_writer_pretty, Value};
-use std::{
-    fs::File,
-    path::Path,
-    process::Command,
-};
+use std::{error::Error, fs::File, path::Path, process::Command, sync::Arc};
 /// Default state on construction of this type.
 /// Can transition to `Initialized` or `Skip`.
 pub struct NotInitialized;
@@ -30,7 +26,7 @@ pub struct Complete;
 /// `init()` to create the venv (if not already created). If you created a venv, then you can call
 /// the installation method ivyper_venv. Otherwise, this step can be skipped in favor of
 /// transitioning to the ready state immediately. Under Venv<Ready> are methods that are executed
-/// inside your venv. This is not true for the Vyper module. 
+/// inside your venv. This is not true for the Vyper module.
 ///   
 ///  States:
 ///
@@ -62,7 +58,7 @@ pub struct Complete;
 ///
 ///      Ready:
 ///
-///         Methods: 
+///         Methods:
 ///             
 ///             compile
 ///         
@@ -523,5 +519,474 @@ impl Venv<Ready> {
             }
         }
     }
+
+    pub fn storage_layout(contract: &Vyper) -> anyhow::Result<()> {
+        if cfg!(target_os = "windows") {
+            let output = Command::new("cmd")
+                .arg("cd")
+                .arg("./venv/scripts")
+                .arg("&&")
+                .arg("activate.bat")
+                .arg("&&")
+                .arg("cd")
+                .arg("../../")
+                .arg("&&")
+                .arg("vyper")
+                .arg("-f")
+                .arg("layout")
+                .arg(&contract.path_to_code)
+                .output()?;
+            if output.status.success() {
+                let json = serde_json::from_str::<Value>(&String::from_utf8_lossy(&output.stdout))?;
+                let file = File::create(&contract.abi)?;
+                to_writer_pretty(file, &json)?;
+                Ok(())
+            } else {
+                bail!(String::from_utf8_lossy(&output.stderr).to_string());
+            }
+        } else {
+            let output = Command::new("sh")
+                .arg("cd")
+                .arg("./venv/scripts")
+                .arg("&&")
+                .arg("activate")
+                .arg("&&")
+                .arg("cd")
+                .arg("../../")
+                .arg("&&")
+                .arg("vyper")
+                .arg("-f")
+                .arg("layout")
+                .arg(&contract.path_to_code)
+                .output()?;
+            if output.status.success() {
+                let json = serde_json::from_str::<Value>(&String::from_utf8_lossy(&output.stdout))?;
+                let file = File::create(&contract.abi)?;
+                to_writer_pretty(file, &json)?;
+                Ok(())
+            } else {
+                bail!(String::from_utf8_lossy(&output.stderr).to_string());
+            }
+        }
+    }
+
+    pub fn ast(contract: &Vyper) -> anyhow::Result<()> {
+        if cfg!(target_os = "windows") {
+            let output = Command::new("cmd")
+                .arg("cd")
+                .arg("./venv/scripts")
+                .arg("&&")
+                .arg("activate.bat")
+                .arg("&&")
+                .arg("cd")
+                .arg("../../")
+                .arg("&&")
+                .arg("vyper")
+                .arg("-f")
+                .arg("ast")
+                .arg(&contract.path_to_code)
+                .output()?;
+            if output.status.success() {
+                let json = serde_json::from_str::<Value>(&String::from_utf8_lossy(&output.stdout))?;
+                let file = File::create(&contract.abi)?;
+                to_writer_pretty(file, &json)?;
+                Ok(())
+            } else {
+                bail!(String::from_utf8_lossy(&output.stderr).to_string());
+            }
+        } else {
+            let output = Command::new("sh")
+                .arg("cd")
+                .arg("./venv/scripts")
+                .arg("&&")
+                .arg("activate")
+                .arg("&&")
+                .arg("cd")
+                .arg("../../")
+                .arg("&&")
+                .arg("vyper")
+                .arg("-f")
+                .arg("ast")
+                .arg(&contract.path_to_code)
+                .output()?;
+            if output.status.success() {
+                let json = serde_json::from_str::<Value>(&String::from_utf8_lossy(&output.stdout))?;
+                let file = File::create(&contract.abi)?;
+                to_writer_pretty(file, &json)?;
+                Ok(())
+            } else {
+                bail!(String::from_utf8_lossy(&output.stderr).to_string());
+            }
+        }
+    }
+
+    pub fn interface(contract: &Vyper) -> anyhow::Result<()> {
+        if cfg!(target_os = "windows") {
+            let output = Command::new("cmd")
+                .arg("cd")
+                .arg("./venv/scripts")
+                .arg("&&")
+                .arg("activate.bat")
+                .arg("&&")
+                .arg("cd")
+                .arg("../../")
+                .arg("&&")
+                .arg("vyper")
+                .arg("-f")
+                .arg("interface")
+                .arg(&contract.path_to_code)
+                .output()?;
+            if output.status.success() {
+                let json = serde_json::from_str::<Value>(&String::from_utf8_lossy(&output.stdout))?;
+                let file = File::create(&contract.abi)?;
+                to_writer_pretty(file, &json)?;
+                Ok(())
+            } else {
+                bail!(String::from_utf8_lossy(&output.stderr).to_string());
+            }
+        } else {
+            let output = Command::new("sh")
+                .arg("cd")
+                .arg("./venv/scripts")
+                .arg("&&")
+                .arg("activate")
+                .arg("&&")
+                .arg("cd")
+                .arg("../../")
+                .arg("&&")
+                .arg("vyper")
+                .arg("-f")
+                .arg("interface")
+                .arg(&contract.path_to_code)
+                .output()?;
+            if output.status.success() {
+                let json = serde_json::from_str::<Value>(&String::from_utf8_lossy(&output.stdout))?;
+                let file = File::create(&contract.abi)?;
+                to_writer_pretty(file, &json)?;
+                Ok(())
+            } else {
+                bail!(String::from_utf8_lossy(&output.stderr).to_string());
+            }
+        }
+    }
+
+    pub fn opcodes(contract: &Vyper) -> anyhow::Result<()> {
+        if cfg!(target_os = "windows") {
+            let output = Command::new("cmd")
+                .arg("cd")
+                .arg("./venv/scripts")
+                .arg("&&")
+                .arg("activate.bat")
+                .arg("&&")
+                .arg("cd")
+                .arg("../../")
+                .arg("&&")
+                .arg("vyper")
+                .arg("-f")
+                .arg("opcodes")
+                .arg(&contract.path_to_code)
+                .output()?;
+            if output.status.success() {
+                let json = serde_json::from_str::<Value>(&String::from_utf8_lossy(&output.stdout))?;
+                let file = File::create(&contract.abi)?;
+                to_writer_pretty(file, &json)?;
+                Ok(())
+            } else {
+                bail!(String::from_utf8_lossy(&output.stderr).to_string());
+            }
+        } else {
+            let output = Command::new("sh")
+                .arg("cd")
+                .arg("./venv/scripts")
+                .arg("&&")
+                .arg("activate")
+                .arg("&&")
+                .arg("cd")
+                .arg("../../")
+                .arg("&&")
+                .arg("vyper")
+                .arg("-f")
+                .arg("opcodes")
+                .arg(&contract.path_to_code)
+                .output()?;
+            if output.status.success() {
+                let json = serde_json::from_str::<Value>(&String::from_utf8_lossy(&output.stdout))?;
+                let file = File::create(&contract.abi)?;
+                to_writer_pretty(file, &json)?;
+                Ok(())
+            } else {
+                bail!(String::from_utf8_lossy(&output.stderr).to_string());
+            }
+        }
+    }
+
+    pub fn opcodes_runtime(contract: &Vyper) -> anyhow::Result<()> {
+        if cfg!(target_os = "windows") {
+            let output = Command::new("cmd")
+                .arg("cd")
+                .arg("./venv/scripts")
+                .arg("&&")
+                .arg("activate.bat")
+                .arg("&&")
+                .arg("cd")
+                .arg("../../")
+                .arg("&&")
+                .arg("vyper")
+                .arg("-f")
+                .arg("opcodes_runtime")
+                .arg(&contract.path_to_code)
+                .output()?;
+            if output.status.success() {
+                let json = serde_json::from_str::<Value>(&String::from_utf8_lossy(&output.stdout))?;
+                let file = File::create(&contract.abi)?;
+                to_writer_pretty(file, &json)?;
+                Ok(())
+            } else {
+                bail!(String::from_utf8_lossy(&output.stderr).to_string());
+            }
+        } else {
+            let output = Command::new("sh")
+                .arg("cd")
+                .arg("./venv/scripts")
+                .arg("&&")
+                .arg("activate")
+                .arg("&&")
+                .arg("cd")
+                .arg("../../")
+                .arg("&&")
+                .arg("vyper")
+                .arg("-f")
+                .arg("opcodes_runtime")
+                .arg(&contract.path_to_code)
+                .output()?;
+            if output.status.success() {
+                let json = serde_json::from_str::<Value>(&String::from_utf8_lossy(&output.stdout))?;
+                let file = File::create(&contract.abi)?;
+                to_writer_pretty(file, &json)?;
+                Ok(())
+            } else {
+                bail!(String::from_utf8_lossy(&output.stderr).to_string());
+            }
+        }
+    }
+
+    pub fn userdoc(contract: &Vyper) -> anyhow::Result<()> {
+        if cfg!(target_os = "windows") {
+            let output = Command::new("cmd")
+                .arg("cd")
+                .arg("./venv/scripts")
+                .arg("&&")
+                .arg("activate.bat")
+                .arg("&&")
+                .arg("cd")
+                .arg("../../")
+                .arg("&&")
+                .arg("vyper")
+                .arg("-f")
+                .arg("userdoc")
+                .arg(&contract.path_to_code)
+                .output()?;
+            if output.status.success() {
+                let json = serde_json::from_str::<Value>(&String::from_utf8_lossy(&output.stdout))?;
+                let file = File::create(&contract.abi)?;
+                to_writer_pretty(file, &json)?;
+                Ok(())
+            } else {
+                bail!(String::from_utf8_lossy(&output.stderr).to_string());
+            }
+        } else {
+            let output = Command::new("sh")
+                .arg("cd")
+                .arg("./venv/scripts")
+                .arg("&&")
+                .arg("activate")
+                .arg("&&")
+                .arg("cd")
+                .arg("../../")
+                .arg("&&")
+                .arg("vyper")
+                .arg("-f")
+                .arg("userdoc")
+                .arg(&contract.path_to_code)
+                .output()?;
+            if output.status.success() {
+                let json = serde_json::from_str::<Value>(&String::from_utf8_lossy(&output.stdout))?;
+                let file = File::create(&contract.abi)?;
+                to_writer_pretty(file, &json)?;
+                Ok(())
+            } else {
+                bail!(String::from_utf8_lossy(&output.stderr).to_string());
+            }
+        }
+    }
+
+    pub fn devdoc(contract: &Vyper) -> anyhow::Result<()> {
+        if cfg!(target_os = "windows") {
+            let output = Command::new("cmd")
+                .arg("cd")
+                .arg("./venv/scripts")
+                .arg("&&")
+                .arg("activate.bat")
+                .arg("&&")
+                .arg("cd")
+                .arg("../../")
+                .arg("&&")
+                .arg("vyper")
+                .arg("-f")
+                .arg("devdoc")
+                .arg(&contract.path_to_code)
+                .output()?;
+            if output.status.success() {
+                let json = serde_json::from_str::<Value>(&String::from_utf8_lossy(&output.stdout))?;
+                let file = File::create(&contract.abi)?;
+                to_writer_pretty(file, &json)?;
+                Ok(())
+            } else {
+                bail!(String::from_utf8_lossy(&output.stderr).to_string());
+            }
+        } else {
+            let output = Command::new("sh")
+                .arg("cd")
+                .arg("./venv/scripts")
+                .arg("&&")
+                .arg("activate")
+                .arg("&&")
+                .arg("cd")
+                .arg("../../")
+                .arg("&&")
+                .arg("vyper")
+                .arg("-f")
+                .arg("devdoc")
+                .arg(&contract.path_to_code)
+                .output()?;
+            if output.status.success() {
+                let json = serde_json::from_str::<Value>(&String::from_utf8_lossy(&output.stdout))?;
+                let file = File::create(&contract.abi)?;
+                to_writer_pretty(file, &json)?;
+                Ok(())
+            } else {
+                bail!(String::from_utf8_lossy(&output.stderr).to_string());
+            }
+        }
+    }
+
+    pub async fn compile_many(contracts: &mut Vypers) -> Result<(), Box<dyn Error>> {
+        let path = Arc::new(contracts.path_to_code.clone());
+        let mut out_vec: Vec<String> = Vec::with_capacity(contracts.path_to_code.len());
+        let mut threads = vec![];
+        for i in 0..contracts.path_to_code.len() {
+            let paths = Arc::clone(&path);
+            let cthread = tokio::spawn(async move {
+                if cfg!(target_os = "windows") {
+                    let compiler_output = Command::new("cmd")
+                        .arg("cd")
+                        .arg("./venv/scripts")
+                        .arg("&&")
+                        .arg("activate.bat")
+                        .arg("&&")
+                        .arg("cd")
+                        .arg("../../")
+                        .arg("&&")
+                        .arg("vyper")
+                        .arg(&paths[i])
+                        .output()?;
+                    if compiler_output.status.success() {
+                        let out = String::from_utf8_lossy(&compiler_output.stdout).to_string();
+                        Ok(out)
+                    } else {
+                        bail!(String::from_utf8_lossy(&compiler_output.stderr).to_string())
+                    }
+                } else {
+                    let compiler_output = Command::new("sh")
+                        .arg("cd")
+                        .arg("./venv/scripts")
+                        .arg("&&")
+                        .arg("activate")
+                        .arg("&&")
+                        .arg("cd")
+                        .arg("../../")
+                        .arg("&&")
+                        .arg("vyper")
+                        .arg(&paths[i])
+                        .output()?;
+                    if compiler_output.status.success() {
+                        let out = String::from_utf8_lossy(&compiler_output.stdout).to_string();
+                        Ok(out)
+                    } else {
+                        bail!(String::from_utf8_lossy(&compiler_output.stderr).to_string())
+                    }
+                } 
+            });
+            threads.push(cthread);
+        }
+        for child_thread in threads {
+            let x = child_thread.await.unwrap()?;
+            out_vec.push(x);
+        }
+        contracts.bytecode = Some(out_vec);
+        Ok(())
+    }
+
     
+    pub async fn compile_many_ver(contracts: &mut Vypers, ver: Evm) -> Result<(), Box<dyn Error>> {
+        let path = Arc::new(contracts.path_to_code.clone());
+        let mut out_vec: Vec<String> = Vec::with_capacity(contracts.path_to_code.len());
+        let mut threads = vec![];
+        for i in 0..contracts.path_to_code.len() {
+            let cver = ver.clone().to_string();
+            let paths = Arc::clone(&path);
+            let cthread = tokio::spawn(async move {
+                if cfg!(target_os = "windows") {
+                    let compiler_output = Command::new("cmd")
+                        .arg("cd")
+                        .arg("./venv/scripts")
+                        .arg("&&")
+                        .arg("activate.bat")
+                        .arg("&&")
+                        .arg("cd")
+                        .arg("../../")
+                        .arg("&&")
+                        .arg("vyper")
+                        .arg(&paths[i])
+                        .arg("--evm-version")
+                        .arg(cver)
+                        .output()?;
+                    if compiler_output.status.success() {
+                        let out = String::from_utf8_lossy(&compiler_output.stdout).to_string();
+                        Ok(out)
+                    } else {
+                        bail!(String::from_utf8_lossy(&compiler_output.stderr).to_string())
+                    }
+                } else {
+                    let compiler_output = Command::new("sh")
+                        .arg("cd")
+                        .arg("./venv/scripts")
+                        .arg("&&")
+                        .arg("activate")
+                        .arg("&&")
+                        .arg("cd")
+                        .arg("../../")
+                        .arg("&&")
+                        .arg("vyper")
+                        .arg(&paths[i])
+                        .arg("--evm-version")
+                        .arg(cver)
+                        .output()?;
+                    if compiler_output.status.success() {
+                        let out = String::from_utf8_lossy(&compiler_output.stdout).to_string();
+                        Ok(out)
+                    } else {
+                        bail!(String::from_utf8_lossy(&compiler_output.stderr).to_string())
+                    }
+                } 
+            });
+            threads.push(cthread);
+        }
+        for child_thread in threads {
+            let x = child_thread.await.unwrap()?;
+            out_vec.push(x);
+        }
+        contracts.bytecode = Some(out_vec);
+        Ok(())
+    }
 }
