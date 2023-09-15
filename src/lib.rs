@@ -1,17 +1,17 @@
 //! This is the documentation for the Vyper-rs crate.
 //! Vyper-rs is a library to interact with the vyper compiler and manage versions with a venv.
 //! Our goal is to connect Vyper with the robust tooling and infrastructure for the Solidity ecosystem written in Rust.
-pub mod vyper;
-pub mod vyper_errors;
 pub mod utils;
 pub mod venv;
+pub mod vyper;
+pub mod vyper_errors;
 
 #[cfg(test)]
 mod test {
     use super::*;
     use crate::vyper::{Evm, Vyper, Vypers};
     use std::path::PathBuf;
-    
+
     #[test]
     fn basic() {
         let path = PathBuf::from("./multisig.vy");
@@ -42,14 +42,17 @@ mod test {
             let abi4: PathBuf = PathBuf::from("./abi4.json");
             let mut vyper_contracts =
                 Vypers::new(vec![path, path2, path3, path4], vec![abi, abi2, abi3, abi4]);
-            vyper_contracts.compile_many_ver(Evm::Shanghai).await.unwrap();
+            vyper_contracts
+                .compile_many_ver(Evm::Shanghai)
+                .await
+                .unwrap();
             assert!(!vyper_contracts.bytecode.is_none());
         })
     }
 
     #[test]
     fn concurrent_compilation() {
-        tokio_test::block_on(async { 
+        tokio_test::block_on(async {
             let path: PathBuf = PathBuf::from("./multisig.vy");
             let path2: PathBuf = PathBuf::from("./multisig.vy");
             let path3: PathBuf = PathBuf::from("./multisig.vy");
@@ -57,7 +60,7 @@ mod test {
             let abi: PathBuf = PathBuf::from("./abi1.json");
             let abi2: PathBuf = PathBuf::from("./abi2.json");
             let abi3: PathBuf = PathBuf::from("./abi3.json");
-            let abi4: PathBuf = PathBuf::from("./abi4.json"); 
+            let abi4: PathBuf = PathBuf::from("./abi4.json");
             let mut vyper_contracts =
                 Vypers::new(vec![path, path2, path3, path4], vec![abi, abi2, abi3, abi4]);
             vyper_contracts.compile_many().await.unwrap();

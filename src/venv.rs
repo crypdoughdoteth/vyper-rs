@@ -226,16 +226,41 @@ impl Venv<Initialized> {
     }
 
     pub fn try_ready(self) -> anyhow::Result<Venv<Ready>> {
-        match Vyper::exists() {
-            true => Ok(Venv {
-                state: std::marker::PhantomData::<Ready>,
-            }),
-            false => {
-                bail!("Vyper not installed")
+        if cfg!(target_os = "windows") {
+            let c = Command::new("cmd")
+                .arg("cd")
+                .arg("./venv/scripts")
+                .arg("&&")
+                .arg("activate.bat")
+                .arg("&&")
+                .arg("vyper")
+                .arg("-h")
+                .output()?;
+
+            if !c.status.success() {
+                bail!("{}", String::from_utf8_lossy(&c.stderr).to_string());
+            }
+        } else {
+            let c = Command::new("sh")
+                .arg("cd")
+                .arg("./venv/scripts")
+                .arg("&&")
+                .arg("activate")
+                .arg("&&")
+                .arg("vyper")
+                .arg("-h")
+                .output()?;
+
+            if !c.status.success() {
+                bail!("{}", String::from_utf8_lossy(&c.stderr).to_string());
             }
         }
+        Ok(Venv {
+            state: std::marker::PhantomData::<Ready>,
+        })
     }
 }
+
 impl Venv<Skip> {
     /// Installs vyper compiler globally, without the protection of a venv
     /// Optional argument for the version of vyper to be installed
@@ -473,7 +498,7 @@ impl Venv<Ready> {
         }
         Ok(())
     }
-    
+
     pub fn abi_json(&self, contract: &Vyper) -> anyhow::Result<Value> {
         if cfg!(target_os = "windows") {
             let output = Command::new("cmd")
@@ -915,7 +940,7 @@ impl Venv<Ready> {
                     } else {
                         bail!(String::from_utf8_lossy(&compiler_output.stderr).to_string())
                     }
-                } 
+                }
             });
             threads.push(cthread);
         }
@@ -927,8 +952,11 @@ impl Venv<Ready> {
         Ok(())
     }
 
-    
-    pub async fn compile_many_ver(&self, contracts: &mut Vypers, ver: Evm) -> Result<(), Box<dyn Error>> {
+    pub async fn compile_many_ver(
+        &self,
+        contracts: &mut Vypers,
+        ver: Evm,
+    ) -> Result<(), Box<dyn Error>> {
         let path = Arc::new(contracts.path_to_code.clone());
         let mut out_vec: Vec<String> = Vec::with_capacity(contracts.path_to_code.len());
         let mut threads = vec![];
@@ -978,7 +1006,7 @@ impl Venv<Ready> {
                     } else {
                         bail!(String::from_utf8_lossy(&compiler_output.stderr).to_string())
                     }
-                } 
+                }
             });
             threads.push(cthread);
         }

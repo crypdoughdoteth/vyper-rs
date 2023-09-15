@@ -453,7 +453,7 @@ impl Vypers {
         let c_path = Arc::new(self.path_to_code.clone());
         let mut threads = vec![];
         for i in 0..self.path_to_code.len() {
-            let c = Arc::clone(&c_path); 
+            let c = Arc::clone(&c_path);
             let cthread = tokio::spawn(async move {
                 let compiler_output = Command::new("vyper")
                     .arg("-f")
