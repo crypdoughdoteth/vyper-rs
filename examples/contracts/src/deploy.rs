@@ -7,13 +7,13 @@ use ethers::{
 };
 
 use vyper_rs::vyper::Vyper;
-use std::{convert::TryFrom, path::Path, sync::Arc, time::Duration, error::Error, fs::File, str::FromStr};
+use std::{convert::TryFrom, path::PathBuf, sync::Arc, time::Duration, error::Error, fs::File, str::FromStr};
 
 
 pub async fn deploy() -> Result<(), Box<dyn Error>> {
  
-    let cpath: &Path = Path::new("../../multisig.vy");
-    let abi: &Path = Path::new("./my_abi.json");
+    let cpath: PathBuf = PathBuf::from("../../multisig.vy");
+    let abi: PathBuf = PathBuf::from("./my_abi.json");
     let mut contract = Vyper::new(cpath, abi);
     contract.compile()?;
     contract.abi()?;

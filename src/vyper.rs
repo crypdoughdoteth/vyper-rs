@@ -36,7 +36,7 @@ impl Vyper {
     ///
     /// Constructor function that takes in the path to your vyper contract and the _desired path/{name}.json_ for your ABI
     ///  
-    pub fn new(path: impl Into<PathBuf>, abi_path: impl Into<PathBuf>) -> Self {
+    pub fn new(path: PathBuf, abi_path: PathBuf) -> Self {
         Self {
             path_to_code: path.into(),
             bytecode: None,
@@ -335,22 +335,15 @@ pub struct Vypers {
 
 impl Vypers {
     /// Constructor function that takes in the paths to your vyper contracts and the _desired paths/{names}.json for your ABIs
-    pub fn new(paths: Vec<impl Into<PathBuf>>, abi_paths: Vec<impl Into<PathBuf>>) -> Self {
+    pub fn new(paths: Vec<PathBuf>, abi_paths: Vec<PathBuf>) -> Self {
         if paths.len() != abi_paths.len() {
             panic!("Mismatched Vector Lengths");
         }
 
-        let mut p = Vec::with_capacity(paths.len());
-        let mut a = Vec::with_capacity(paths.len());
-        paths.into_iter().zip(abi_paths).for_each(|(pa, ab)| {
-            p.push(pa.into());
-            a.push(ab.into());
-        });
-
         Self {
-            path_to_code: p,
+            path_to_code: paths,
             bytecode: None,
-            abi: a,
+            abi: abi_paths,
         }
     }
 

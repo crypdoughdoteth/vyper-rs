@@ -1,13 +1,13 @@
-use std::{path::Path, error::Error};
+use std::{path::PathBuf, error::Error};
 use vyper_rs::{vyper::Vyper, venv::Venv};
 
 pub fn venv_example() -> Result<(), Box<dyn Error>> {
-    let cpath: &Path = Path::new("../../multisig.vy");
-    let abi: &Path = Path::new("./my_abi.json");
-    Venv::new()
+    let cpath: PathBuf = PathBuf::from("../../multisig.vy");
+    let abi: PathBuf = Path::from("./my_abi.json");
+    let venv = Venv::new()
         .init()?
         .ivyper_venv(None)?; 
     let mut contract = Vyper::new(cpath, abi);
-    contract.compile()?;
+    venv.compile(contract)?;
     Ok(())
 }

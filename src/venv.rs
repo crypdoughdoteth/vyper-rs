@@ -276,7 +276,7 @@ impl Venv<Skip> {
 }
 
 impl Venv<Ready> {
-    pub fn compile(contract: &mut Vyper) -> anyhow::Result<()> {
+    pub fn compile(&self, contract: &mut Vyper) -> anyhow::Result<()> {
         if cfg!(target_os = "windows") {
             let output = Command::new("cmd")
                 .arg("cd")
@@ -323,7 +323,7 @@ impl Venv<Ready> {
         Ok(())
     }
 
-    pub fn compile_blueprint(contract: &mut Vyper) -> anyhow::Result<()> {
+    pub fn compile_blueprints(&self, contract: &mut Vyper) -> anyhow::Result<()> {
         if cfg!(target_os = "windows") {
             let output = Command::new("cmd")
                 .arg("cd")
@@ -373,7 +373,7 @@ impl Venv<Ready> {
         Ok(())
     }
 
-    pub fn compile_ver(contract: &mut Vyper, ver: Evm) -> anyhow::Result<()> {
+    pub fn compile_ver(&self, contract: &mut Vyper, ver: Evm) -> anyhow::Result<()> {
         if cfg!(target_os = "windows") {
             let output = Command::new("cmd")
                 .arg("cd")
@@ -423,7 +423,7 @@ impl Venv<Ready> {
         Ok(())
     }
 
-    pub fn abi(contract: &Vyper) -> anyhow::Result<()> {
+    pub fn abi(&self, contract: &Vyper) -> anyhow::Result<()> {
         if cfg!(target_os = "windows") {
             let output = Command::new("cmd")
                 .arg("cd")
@@ -473,8 +473,8 @@ impl Venv<Ready> {
         }
         Ok(())
     }
-
-    pub fn abi_json(contract: &Vyper) -> anyhow::Result<Value> {
+    
+    pub fn abi_json(&self, contract: &Vyper) -> anyhow::Result<Value> {
         if cfg!(target_os = "windows") {
             let output = Command::new("cmd")
                 .arg("cd")
@@ -520,7 +520,7 @@ impl Venv<Ready> {
         }
     }
 
-    pub fn storage_layout(contract: &Vyper) -> anyhow::Result<()> {
+    pub fn storage_layout(&self, contract: &Vyper) -> anyhow::Result<()> {
         if cfg!(target_os = "windows") {
             let output = Command::new("cmd")
                 .arg("cd")
@@ -570,7 +570,7 @@ impl Venv<Ready> {
         }
     }
 
-    pub fn ast(contract: &Vyper) -> anyhow::Result<()> {
+    pub fn ast(&self, contract: &Vyper) -> anyhow::Result<()> {
         if cfg!(target_os = "windows") {
             let output = Command::new("cmd")
                 .arg("cd")
@@ -620,7 +620,7 @@ impl Venv<Ready> {
         }
     }
 
-    pub fn interface(contract: &Vyper) -> anyhow::Result<()> {
+    pub fn interface(&self, contract: &Vyper) -> anyhow::Result<()> {
         if cfg!(target_os = "windows") {
             let output = Command::new("cmd")
                 .arg("cd")
@@ -670,7 +670,7 @@ impl Venv<Ready> {
         }
     }
 
-    pub fn opcodes(contract: &Vyper) -> anyhow::Result<()> {
+    pub fn opcodes(&self, contract: &Vyper) -> anyhow::Result<()> {
         if cfg!(target_os = "windows") {
             let output = Command::new("cmd")
                 .arg("cd")
@@ -720,7 +720,7 @@ impl Venv<Ready> {
         }
     }
 
-    pub fn opcodes_runtime(contract: &Vyper) -> anyhow::Result<()> {
+    pub fn opcodes_runtime(&self, contract: &Vyper) -> anyhow::Result<()> {
         if cfg!(target_os = "windows") {
             let output = Command::new("cmd")
                 .arg("cd")
@@ -770,7 +770,7 @@ impl Venv<Ready> {
         }
     }
 
-    pub fn userdoc(contract: &Vyper) -> anyhow::Result<()> {
+    pub fn userdoc(&self, contract: &Vyper) -> anyhow::Result<()> {
         if cfg!(target_os = "windows") {
             let output = Command::new("cmd")
                 .arg("cd")
@@ -820,7 +820,7 @@ impl Venv<Ready> {
         }
     }
 
-    pub fn devdoc(contract: &Vyper) -> anyhow::Result<()> {
+    pub fn devdoc(&self, contract: &Vyper) -> anyhow::Result<()> {
         if cfg!(target_os = "windows") {
             let output = Command::new("cmd")
                 .arg("cd")
@@ -870,7 +870,7 @@ impl Venv<Ready> {
         }
     }
 
-    pub async fn compile_many(contracts: &mut Vypers) -> Result<(), Box<dyn Error>> {
+    pub async fn compile_many(&self, contracts: &mut Vypers) -> Result<(), Box<dyn Error>> {
         let path = Arc::new(contracts.path_to_code.clone());
         let mut out_vec: Vec<String> = Vec::with_capacity(contracts.path_to_code.len());
         let mut threads = vec![];
@@ -928,7 +928,7 @@ impl Venv<Ready> {
     }
 
     
-    pub async fn compile_many_ver(contracts: &mut Vypers, ver: Evm) -> Result<(), Box<dyn Error>> {
+    pub async fn compile_many_ver(&self, contracts: &mut Vypers, ver: Evm) -> Result<(), Box<dyn Error>> {
         let path = Arc::new(contracts.path_to_code.clone());
         let mut out_vec: Vec<String> = Vec::with_capacity(contracts.path_to_code.len());
         let mut threads = vec![];

@@ -1,26 +1,21 @@
 //! This is the documentation for the Vyper-rs crate.
 //! Vyper-rs is a library to interact with the vyper compiler and manage versions with a venv.
 //! Our goal is to connect Vyper with the robust tooling and infrastructure for the Solidity ecosystem written in Rust.
-use crate::vyper::Vyper;
-use serde_json::{to_writer_pretty, Value};
-use std::{error::Error, fmt::Display, fs::File, path::Path, process::Command};
 pub mod vyper;
 pub mod vyper_errors;
-use itertools::izip;
 pub mod utils;
 pub mod venv;
 
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::venv::Venv;
-    use crate::vyper::{Evm, Vypers};
-    use crate::vyper_errors::CompilerError;
-
+    use crate::vyper::{Evm, Vyper, Vypers};
+    use std::path::PathBuf;
+    
     #[test]
     fn basic() {
-        let path = Path::new("./multisig.vy");
-        let abi_path = Path::new("./abi.json");
+        let path = PathBuf::from("./multisig.vy");
+        let abi_path = PathBuf::from("./abi.json");
         let mut vyper_contract = Vyper::new(path, abi_path);
         vyper_contract.compile().unwrap();
         vyper_contract.abi().unwrap();
@@ -28,8 +23,8 @@ mod test {
 
     #[test]
     fn compile_version() {
-        let path = Path::new("./multisig.vy");
-        let abi_path = Path::new("./abi.json");
+        let path = PathBuf::from("./multisig.vy");
+        let abi_path = PathBuf::from("./abi.json");
         let mut vyper_contract = Vyper::new(path, abi_path);
         vyper_contract.compile_ver(Evm::Shanghai).unwrap();
     }
@@ -37,75 +32,75 @@ mod test {
     #[test]
     fn concurrent_compilation_vers() {
         tokio_test::block_on(async {
-            let path: &Path = Path::new("./multisig.vy");
-            let path2: &Path = Path::new("./multisig.vy");
-            let path3: &Path = Path::new("./multisig.vy");
-            let path4: &Path = Path::new("./multisig.vy");
-            let abi: &Path = Path::new("./abi1.json");
-            let abi2: &Path = Path::new("./abi2.json");
-            let abi3: &Path = Path::new("./abi3.json");
-            let abi4: &Path = Path::new("./abi4.json");
+            let path: PathBuf = PathBuf::from("./multisig.vy");
+            let path2: PathBuf = PathBuf::from("./multisig.vy");
+            let path3: PathBuf = PathBuf::from("./multisig.vy");
+            let path4: PathBuf = PathBuf::from("./multisig.vy");
+            let abi: PathBuf = PathBuf::from("./abi1.json");
+            let abi2: PathBuf = PathBuf::from("./abi2.json");
+            let abi3: PathBuf = PathBuf::from("./abi3.json");
+            let abi4: PathBuf = PathBuf::from("./abi4.json");
             let mut vyper_contracts =
                 Vypers::new(vec![path, path2, path3, path4], vec![abi, abi2, abi3, abi4]);
-            vyper_contracts.compile_ver(Evm::Shanghai).await.unwrap();
+            vyper_contracts.compile_many_ver(Evm::Shanghai).await.unwrap();
             assert!(!vyper_contracts.bytecode.is_none());
         })
     }
 
     #[test]
     fn concurrent_compilation() {
-        tokio_test::block_on(async {
-            let path: &Path = Path::new("./multisig.vy");
-            let path2: &Path = Path::new("./multisig.vy");
-            let path3: &Path = Path::new("./multisig.vy");
-            let path4: &Path = Path::new("./multisig.vy");
-            let abi: &Path = Path::new("./abi1.json");
-            let abi2: &Path = Path::new("./abi2.json");
-            let abi3: &Path = Path::new("./abi3.json");
-            let abi4: &Path = Path::new("./abi4.json");
+        tokio_test::block_on(async { 
+            let path: PathBuf = PathBuf::from("./multisig.vy");
+            let path2: PathBuf = PathBuf::from("./multisig.vy");
+            let path3: PathBuf = PathBuf::from("./multisig.vy");
+            let path4: PathBuf = PathBuf::from("./multisig.vy");
+            let abi: PathBuf = PathBuf::from("./abi1.json");
+            let abi2: PathBuf = PathBuf::from("./abi2.json");
+            let abi3: PathBuf = PathBuf::from("./abi3.json");
+            let abi4: PathBuf = PathBuf::from("./abi4.json"); 
             let mut vyper_contracts =
                 Vypers::new(vec![path, path2, path3, path4], vec![abi, abi2, abi3, abi4]);
-            vyper_contracts.compile().await.unwrap();
+            vyper_contracts.compile_many().await.unwrap();
             assert!(!vyper_contracts.bytecode.is_none());
         })
     }
 
     #[test]
     fn interface() {
-        let path = Path::new("./multisig.vy");
-        let abi_path: &Path = Path::new("./abi.json");
+        let path = PathBuf::from("./multisig.vy");
+        let abi_path: PathBuf = PathBuf::from("./abi.json");
         let vyper_contract = Vyper::new(path, abi_path);
         vyper_contract.interface().unwrap();
     }
 
     #[test]
     fn storage() {
-        let path = Path::new("./multisig.vy");
-        let abi_path = Path::new("./abi.json");
+        let path = PathBuf::from("./multisig.vy");
+        let abi_path = PathBuf::from("./abi.json");
         let vyper_contract = Vyper::new(path, abi_path);
         vyper_contract.storage_layout().unwrap();
     }
 
     #[test]
     fn opcodes() {
-        let path = Path::new("./multisig.vy");
-        let abi_path = Path::new("./abi.json");
+        let path = PathBuf::from("./multisig.vy");
+        let abi_path = PathBuf::from("./abi.json");
         let vyper_contract = Vyper::new(path, abi_path);
         vyper_contract.opcodes().unwrap();
     }
 
     #[test]
     fn ast() {
-        let path = Path::new("./multisig.vy");
-        let abi_path = Path::new("./abi.json");
+        let path = PathBuf::from("./multisig.vy");
+        let abi_path = PathBuf::from("./abi.json");
         let vyper_contract = Vyper::new(path, abi_path);
         vyper_contract.ast().unwrap();
     }
 
     #[test]
     fn bp() {
-        let path = Path::new("./multisig.vy");
-        let abi_path = Path::new("./abi.json");
+        let path = PathBuf::from("./multisig.vy");
+        let abi_path = PathBuf::from("./abi.json");
         let mut vyper_contract = Vyper::new(path, abi_path);
         Vyper::compile_blueprint(&mut vyper_contract).unwrap();
         println!("{}", vyper_contract.bytecode.unwrap());
