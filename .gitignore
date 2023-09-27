@@ -1,5 +1,6 @@
 /target
 /examples/contracts/target
 /.vscode
-multisig.vy
 /venv
+/__pycache__
+/.git

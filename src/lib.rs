@@ -9,6 +9,7 @@ pub mod vyper_errors;
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::venv::Venv;
     use crate::vyper::{Evm, Vyper, Vypers};
     use std::path::PathBuf;
 
@@ -155,5 +156,16 @@ mod test {
             ),
             (a3, b3, c3)
         );
+    }
+
+    use std::process::Command;
+    #[test]
+    fn venv_test() {
+        let out = Command::new("./venv/scripts/vyper")
+            .arg("./multisig.vy")
+            .output()
+            .unwrap();
+        assert!(out.status.success());
+        println!("{}", String::from_utf8_lossy(&out.stdout).to_string());
     }
 }
