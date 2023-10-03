@@ -1,4 +1,7 @@
-use std::{error::Error, fmt::Display};
+use std::{
+    error::Error,
+    fmt::Display,
+};
 
 #[derive(Debug)]
 pub struct CompilerError {
