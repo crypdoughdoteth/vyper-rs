@@ -1,21 +1,12 @@
 use crate::vyper_errors::CompilerError;
-use anyhow::{
-    bail,
-    Result,
-};
+use anyhow::{bail, Result};
 use itertools::izip;
-use serde_json::{
-    to_writer_pretty,
-    Value,
-};
+use serde_json::{to_writer_pretty, Value};
 use std::{
     error::Error,
     fmt::Display,
     fs::File,
-    io::{
-        BufWriter,
-        Write,
-    },
+    io::{BufWriter, Write},
     path::PathBuf,
     process::Command,
     sync::Arc,
@@ -70,7 +61,7 @@ impl Vyper {
             // println!("\nVyper compilation failed: {:?}\n",  String::from_utf8_lossy(&compiler_output.stderr));
             return Err(Box::new(CompilerError::new(
                 String::from_utf8_lossy(&compiler_output.stderr).to_string(),
-            )))
+            )));
         }
     }
 
@@ -89,7 +80,7 @@ impl Vyper {
             // println!("\nVyper compilation failed: {:?}\n",  String::from_utf8_lossy(&compiler_output.stderr));
             return Err(Box::new(CompilerError::new(
                 String::from_utf8_lossy(&compiler_output.stderr).to_string(),
-            )))
+            )));
         }
     }
 
@@ -113,7 +104,7 @@ impl Vyper {
             // println!("\nVyper compilation failed: {:?}\n",  String::from_utf8_lossy(&compiler_output.stderr));
             return Err(Box::new(CompilerError::new(
                 String::from_utf8_lossy(&compiler_output.stderr).to_string(),
-            )))
+            )));
         }
     }
     /// Generates the ABI and creates a file @ the abi path specified in the Vyper struct
@@ -139,7 +130,7 @@ impl Vyper {
             // println!("\nVyper compilation failed: {:?}\n",  String::from_utf8_lossy(&compiler_output.stderr));
             return Err(Box::new(CompilerError::new(
                 String::from_utf8_lossy(&compiler_output.stderr).to_string(),
-            )))
+            )));
         }
     }
 
@@ -164,7 +155,7 @@ impl Vyper {
             // println!("\nVyper compilation failed: {:?}\n",  String::from_utf8_lossy(&compiler_output.stderr));
             return Err(Box::new(CompilerError::new(
                 String::from_utf8_lossy(&compiler_output.stderr).to_string(),
-            )))
+            )));
         }
     }
 
@@ -191,7 +182,7 @@ impl Vyper {
             // println!("\nVyper compilation failed: {:?}\n",  String::from_utf8_lossy(&compiler_output.stderr));
             return Err(Box::new(CompilerError::new(
                 String::from_utf8_lossy(&compiler_output.stderr).to_string(),
-            )))
+            )));
         }
     }
     /// AST of your contract as JSON, saves it to a file
@@ -217,7 +208,7 @@ impl Vyper {
             // println!("\nVyper compilation failed: {:?}\n",  String::from_utf8_lossy(&compiler_output.stderr));
             return Err(Box::new(CompilerError::new(
                 String::from_utf8_lossy(&compiler_output.stderr).to_string(),
-            )))
+            )));
         }
     }
     /// Generates an external interface for your vyper contract to be called with
@@ -240,7 +231,7 @@ impl Vyper {
             // println!("\nVyper compilation failed: {:?}\n",  String::from_utf8_lossy(&compiler_output.stderr));
             return Err(Box::new(CompilerError::new(
                 String::from_utf8_lossy(&compiler_output.stderr).to_string(),
-            )))
+            )));
         }
     }
     /// Generates the opcodes produced by your vyper contract, saves it as a text file
@@ -263,7 +254,7 @@ impl Vyper {
             // println!("\nVyper compilation failed: {:?}\n",  String::from_utf8_lossy(&compiler_output.stderr));
             return Err(Box::new(CompilerError::new(
                 String::from_utf8_lossy(&compiler_output.stderr).to_string(),
-            )))
+            )));
         }
     }
     /// Generates the opcodes produced by your vyper contract at runtime, saves it as a text file
@@ -286,7 +277,7 @@ impl Vyper {
             // println!("\nVyper compilation failed: {:?}\n",  String::from_utf8_lossy(&compiler_output.stderr));
             return Err(Box::new(CompilerError::new(
                 String::from_utf8_lossy(&compiler_output.stderr).to_string(),
-            )))
+            )));
         }
     }
     /// Natspec user documentation for vyper contract
@@ -309,7 +300,7 @@ impl Vyper {
             // println!("\nVyper compilation failed: {:?}\n",  String::from_utf8_lossy(&compiler_output.stderr));
             return Err(Box::new(CompilerError::new(
                 String::from_utf8_lossy(&compiler_output.stderr).to_string(),
-            )))
+            )));
         }
     }
     /// Natspec dev documentation for vyper contract
@@ -332,7 +323,7 @@ impl Vyper {
             // println!("\nVyper compilation failed: {:?}\n",  String::from_utf8_lossy(&compiler_output.stderr));
             return Err(Box::new(CompilerError::new(
                 String::from_utf8_lossy(&compiler_output.stderr).to_string(),
-            )))
+            )));
         }
     }
 }

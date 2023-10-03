@@ -1,20 +1,7 @@
-use crate::vyper::{
-    Evm,
-    Vyper,
-    Vypers,
-};
+use crate::vyper::{Evm, Vyper, Vypers};
 use anyhow::bail;
-use serde_json::{
-    to_writer_pretty,
-    Value,
-};
-use std::{
-    error::Error,
-    fs::File,
-    path::Path,
-    process::Command,
-    sync::Arc,
-};
+use serde_json::{to_writer_pretty, Value};
+use std::{error::Error, fs::File, path::Path, process::Command, sync::Arc};
 /// Default state on construction of this type.
 /// Can transition to `Initialized` or `Skip`.
 pub struct NotInitialized;
@@ -132,6 +119,18 @@ impl Venv<NotInitialized> {
                     .output()?;
                 if !b.status.success() {
                     bail!("{}", String::from_utf8_lossy(&b.stderr).to_string());
+                }
+
+                // Linux users don't have folder named scripts inside the venv folder structure.
+                // So, we must rename the equivalent folder named "bin"
+                if !(cfg!(target_os = "windows")) {
+                    let rename = Command::new("mv")
+                        .arg("./venv/bin")
+                        .arg("./venv/scripts")
+                        .output()?;
+                    if !rename.status.success() {
+                        bail!("Unable to rename dir ./venv/bin to ./venv/scripts");
+                    }
                 }
                 Ok(Venv {
                     state: std::marker::PhantomData::<Initialized>,

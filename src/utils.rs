@@ -1,7 +1,4 @@
-use anyhow::{
-    bail,
-    Result,
-};
+use anyhow::{bail, Result};
 
 /// Parses the ERC-5202 bytecode container format for indexing blueprint contracts.
 ///
