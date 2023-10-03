@@ -1,7 +1,20 @@
-use crate::vyper::{Evm, Vyper, Vypers};
+use crate::vyper::{
+    Evm,
+    Vyper,
+    Vypers,
+};
 use anyhow::bail;
-use serde_json::{to_writer_pretty, Value};
-use std::{error::Error, fs::File, path::Path, process::Command, sync::Arc};
+use serde_json::{
+    to_writer_pretty,
+    Value,
+};
+use std::{
+    error::Error,
+    fs::File,
+    path::Path,
+    process::Command,
+    sync::Arc,
+};
 /// Default state on construction of this type.
 /// Can transition to `Initialized` or `Skip`.
 pub struct NotInitialized;
@@ -28,47 +41,47 @@ pub struct Complete;
 /// transitioning to the ready state immediately. Under Venv<Ready> are methods that are executed
 /// inside your venv. This is not true for the Vyper module.
 ///   
-///  States:
-///
-///      NotInitialized:
-///
-///          Methods:
-///
-///              new
-///
-///              init
-///
-///              skip
-///
-///      Initialized:
-///
-///          Methods:
-///
-///              ivyper_venv
-///
-///              try_ready
-///
-///      Skip:
-///
-///          Methods:
-///
-///              ivyper_pip
-///
-///              try_ready
-///
-///      Ready:
-///
-///         Methods:
-///             
-///             compile
-///         
-///             compile_ver
-///
-///             abi
-///
-///             abi_json
-///     
-///     Complete
+//  States:
+//
+//      NotInitialized:
+//
+//          Methods:
+//
+//              new
+//
+//              init
+//
+//              skip
+//
+//      Initialized:
+//
+//          Methods:
+//
+//              ivyper_venv
+//
+//              try_ready
+//
+//      Skip:
+//
+//          Methods:
+//
+//              ivyper_pip
+//
+//              try_ready
+//
+//      Ready:
+//
+//         Methods:
+//
+//             compile
+//
+//             compile_ver
+//
+//             abi
+//
+//             abi_json
+//
+//     Complete
 pub struct Venv<State = NotInitialized> {
     state: std::marker::PhantomData<State>,
 }
@@ -147,9 +160,9 @@ impl Venv<Initialized> {
                     bail!("{}", String::from_utf8_lossy(&c.stderr).to_string());
                 }
                 println!("Version {} of Vyper has been installed", version);
-                return Ok(Venv {
+                Ok(Venv {
                     state: std::marker::PhantomData::<Ready>,
-                });
+                })
             }
             None => {
                 let c = Command::new("./venv/scripts/pip")
@@ -160,9 +173,9 @@ impl Venv<Initialized> {
                     bail!("{}", String::from_utf8_lossy(&c.stderr).to_string());
                 }
                 println!("The latest version of vyper has been installed");
-                return Ok(Venv {
+                Ok(Venv {
                     state: std::marker::PhantomData::<Ready>,
-                });
+                })
             }
         }
     }
@@ -271,8 +284,9 @@ impl Venv<Ready> {
             .arg(&contract.path_to_code)
             .output()?;
         if output.status.success() {
-            let json = serde_json::from_str::<Value>(&String::from_utf8_lossy(&output.stdout))?
-                .to_string();
+            let json =
+                serde_json::from_str::<Value>(&String::from_utf8_lossy(&output.stdout))?
+                    .to_string();
             let file = File::create(&contract.abi)?;
             to_writer_pretty(file, &json)?;
         } else {
@@ -288,8 +302,9 @@ impl Venv<Ready> {
             .arg(&contract.path_to_code)
             .output()?;
         if output.status.success() {
-            let json = serde_json::from_str::<Value>(&String::from_utf8_lossy(&output.stdout))?;
-            return Ok(json);
+            let json =
+                serde_json::from_str::<Value>(&String::from_utf8_lossy(&output.stdout))?;
+            Ok(json)
         } else {
             bail!(String::from_utf8_lossy(&output.stderr).to_string());
         }
@@ -302,7 +317,8 @@ impl Venv<Ready> {
             .arg(&contract.path_to_code)
             .output()?;
         if output.status.success() {
-            let json = serde_json::from_str::<Value>(&String::from_utf8_lossy(&output.stdout))?;
+            let json =
+                serde_json::from_str::<Value>(&String::from_utf8_lossy(&output.stdout))?;
             let file = File::create(&contract.abi)?;
             to_writer_pretty(file, &json)?;
             Ok(())
@@ -318,7 +334,8 @@ impl Venv<Ready> {
             .arg(&contract.path_to_code)
             .output()?;
         if output.status.success() {
-            let json = serde_json::from_str::<Value>(&String::from_utf8_lossy(&output.stdout))?;
+            let json =
+                serde_json::from_str::<Value>(&String::from_utf8_lossy(&output.stdout))?;
             let file = File::create(&contract.abi)?;
             to_writer_pretty(file, &json)?;
             Ok(())
@@ -334,7 +351,8 @@ impl Venv<Ready> {
             .arg(&contract.path_to_code)
             .output()?;
         if output.status.success() {
-            let json = serde_json::from_str::<Value>(&String::from_utf8_lossy(&output.stdout))?;
+            let json =
+                serde_json::from_str::<Value>(&String::from_utf8_lossy(&output.stdout))?;
             let file = File::create(&contract.abi)?;
             to_writer_pretty(file, &json)?;
             Ok(())
@@ -350,7 +368,8 @@ impl Venv<Ready> {
             .arg(&contract.path_to_code)
             .output()?;
         if output.status.success() {
-            let json = serde_json::from_str::<Value>(&String::from_utf8_lossy(&output.stdout))?;
+            let json =
+                serde_json::from_str::<Value>(&String::from_utf8_lossy(&output.stdout))?;
             let file = File::create(&contract.abi)?;
             to_writer_pretty(file, &json)?;
             Ok(())
@@ -366,7 +385,8 @@ impl Venv<Ready> {
             .arg(&contract.path_to_code)
             .output()?;
         if output.status.success() {
-            let json = serde_json::from_str::<Value>(&String::from_utf8_lossy(&output.stdout))?;
+            let json =
+                serde_json::from_str::<Value>(&String::from_utf8_lossy(&output.stdout))?;
             let file = File::create(&contract.abi)?;
             to_writer_pretty(file, &json)?;
             Ok(())
@@ -382,7 +402,8 @@ impl Venv<Ready> {
             .arg(&contract.path_to_code)
             .output()?;
         if output.status.success() {
-            let json = serde_json::from_str::<Value>(&String::from_utf8_lossy(&output.stdout))?;
+            let json =
+                serde_json::from_str::<Value>(&String::from_utf8_lossy(&output.stdout))?;
             let file = File::create(&contract.abi)?;
             to_writer_pretty(file, &json)?;
             Ok(())
@@ -398,7 +419,8 @@ impl Venv<Ready> {
             .arg(&contract.path_to_code)
             .output()?;
         if output.status.success() {
-            let json = serde_json::from_str::<Value>(&String::from_utf8_lossy(&output.stdout))?;
+            let json =
+                serde_json::from_str::<Value>(&String::from_utf8_lossy(&output.stdout))?;
             let file = File::create(&contract.abi)?;
             to_writer_pretty(file, &json)?;
             Ok(())
@@ -407,7 +429,10 @@ impl Venv<Ready> {
         }
     }
 
-    pub async fn compile_many(&self, contracts: &mut Vypers) -> Result<(), Box<dyn Error>> {
+    pub async fn compile_many(
+        &self,
+        contracts: &mut Vypers,
+    ) -> Result<(), Box<dyn Error>> {
         let path = Arc::new(contracts.path_to_code.clone());
         let mut out_vec: Vec<String> = Vec::with_capacity(contracts.path_to_code.len());
         let mut threads = vec![];
@@ -418,7 +443,8 @@ impl Venv<Ready> {
                     .arg(&paths[i])
                     .output()?;
                 if compiler_output.status.success() {
-                    let out = String::from_utf8_lossy(&compiler_output.stdout).to_string();
+                    let out =
+                        String::from_utf8_lossy(&compiler_output.stdout).to_string();
                     Ok(out)
                 } else {
                     bail!(String::from_utf8_lossy(&compiler_output.stderr).to_string())
@@ -452,7 +478,8 @@ impl Venv<Ready> {
                     .arg(cver)
                     .output()?;
                 if compiler_output.status.success() {
-                    let out = String::from_utf8_lossy(&compiler_output.stdout).to_string();
+                    let out =
+                        String::from_utf8_lossy(&compiler_output.stdout).to_string();
                     Ok(out)
                 } else {
                     bail!(String::from_utf8_lossy(&compiler_output.stderr).to_string())

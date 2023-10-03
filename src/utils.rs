@@ -1,4 +1,7 @@
-use anyhow::{bail, Result};
+use anyhow::{
+    bail,
+    Result,
+};
 
 /// Parses the ERC-5202 bytecode container format for indexing blueprint contracts.
 ///
@@ -10,7 +13,7 @@ use anyhow::{bail, Result};
 /// Available: https://eips.ethereum.org/EIPS/eip-5202.
 
 pub fn parse_blueprint(bytecode: &[u8]) -> Result<(u8, Option<Vec<u8>>, Vec<u8>)> {
-    if bytecode.len() == 0 {
+    if bytecode.is_empty() {
         bail!("Empty Bytecode");
     }
     if &bytecode[0..2] != b"\xFE\x71" {
@@ -20,7 +23,7 @@ pub fn parse_blueprint(bytecode: &[u8]) -> Result<(u8, Option<Vec<u8>>, Vec<u8>)
     let erc_version = (&bytecode[2] & 0b11111100) >> 2;
     let n_length_bytes = &bytecode[2] & 0b11;
 
-    if &n_length_bytes == &0b11 {
+    if n_length_bytes == 0b11 {
         bail!("Reserved bits are set");
     }
 
@@ -36,19 +39,17 @@ pub fn parse_blueprint(bytecode: &[u8]) -> Result<(u8, Option<Vec<u8>>, Vec<u8>)
         }
     };
 
-    let preamble_data: Option<Vec<u8>>;
-    match data_length {
-        0 => {
-            preamble_data = None;
-        }
+    let preamble_data: Option<Vec<u8>> = match data_length {
+        0 => None,
         _ => {
             let data_start = 3 + n_length_bytes as usize;
-            preamble_data = Some(bytecode[data_start..data_start + data_length as usize].to_vec());
+            Some(bytecode[data_start..data_start + data_length as usize].to_vec())
         }
-    }
+    };
 
-    let initcode = bytecode[3 + n_length_bytes as usize + data_length as usize..].to_vec();
-    match initcode.len() == 0 {
+    let initcode =
+        bytecode[3 + n_length_bytes as usize + data_length as usize..].to_vec();
+    match initcode.is_empty() {
         true => {
             bail!("Empty Initcode!")
         }
