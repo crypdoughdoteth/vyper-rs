@@ -238,7 +238,7 @@ impl Venv<Skip> {
 impl Venv<Ready> {
     
     /// check the version of the vyper compiler
-    pub fn installed_version(&self) -> anyhow::Result<String> { 
+    pub fn get_version(&self) -> anyhow::Result<String> { 
        let out = Command::new("vyper").arg("--version").output()?; 
         if !out.status.success() {
             bail!("Couldn't locate version info");

@@ -49,7 +49,7 @@ impl Vyper {
     }
    
     /// check the version of the vyper compiler
-    pub fn installed_version() -> Result<String, Box<dyn Error>> {
+    pub fn get_version() -> Result<String, Box<dyn Error>> {
        let out = Command::new("vyper").arg("--version").output()?; 
         if !out.status.success() {
            return Err(Box::new(CompilerError::new("Couldn't locate version info, installation does not exist".to_string())))
@@ -552,7 +552,8 @@ impl Into<Vypers> for Vec<Vyper> {
         }
     }
 }
-#[derive(Clone, Debug)]
+
+#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize)]
 pub enum Evm {
     Byzantium,
     Constantinople,
