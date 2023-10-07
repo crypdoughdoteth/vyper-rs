@@ -4,19 +4,23 @@ use serde_json::{to_writer_pretty, Value};
 use std::{error::Error, fs::File, path::Path, process::Command, sync::Arc};
 /// Default state on construction of this type.
 /// Can transition to `Initialized` or `Skip`.
+#[derive(Clone, Copy, Eq, PartialEq, Debug)]
 pub struct NotInitialized;
-
 /// Venv was activiated using the `init()` method.
 /// Can call `ivyper_venv` to install the vyper compiler into the venv.
 /// Can call `try_ready()` to check if vyper is installed and transition to `Ready`.
+#[derive(Clone, Copy, Eq, PartialEq, Debug)]
 pub struct Initialized;
 
 /// Declined to activate a venv
 /// can call `ivyper_pip()` to install vyper globablly
+#[derive(Clone, Copy, Eq, PartialEq, Debug)]
 pub struct Skip;
 /// Vyper was installed successfully into venv or already exists.
+#[derive(Clone, Copy, Eq, PartialEq, Debug)]
 pub struct Ready;
 /// Vyper was successfully installed globally or already exists.
+#[derive(Clone, Copy, Eq, PartialEq, Debug)]
 pub struct Complete;
 ///  
 /// Manages versions of the vyper compiler with a venv or globally.
@@ -69,6 +73,7 @@ pub struct Complete;
 //             abi_json
 //
 //     Complete
+#[derive(Clone, Copy, Eq, PartialEq, Debug)]
 pub struct Venv<State = NotInitialized> {
     state: std::marker::PhantomData<State>,
 }
@@ -123,7 +128,7 @@ impl Venv<NotInitialized> {
 
                 // Linux users don't have folder named scripts inside the venv folder structure.
                 // So, we must rename the equivalent folder named "bin"
-                if !(cfg!(target_os = "windows")) {
+                if !cfg!(target_os = "windows") {
                     let rename = Command::new("mv")
                         .arg("./venv/bin")
                         .arg("./venv/scripts")
@@ -231,6 +236,16 @@ impl Venv<Skip> {
 }
 
 impl Venv<Ready> {
+    
+    /// check the version of the vyper compiler
+    pub fn installed_version(&self) -> anyhow::Result<String> { 
+       let out = Command::new("vyper").arg("--version").output()?; 
+        if !out.status.success() {
+            bail!("Couldn't locate version info");
+        }
+        Ok(String::from_utf8_lossy(&out.stdout).to_string())
+    }
+
     pub fn compile(&self, contract: &mut Vyper) -> anyhow::Result<()> {
         let output = Command::new("./venv/scripts/vyper")
             .arg(&contract.path_to_code)

@@ -170,4 +170,9 @@ mod test {
         assert!(out.status.success());
         println!("{}", String::from_utf8_lossy(&out.stdout).to_string());
     }
+
+    #[test]
+    fn version_detect() {
+        Vyper::installed_version().unwrap();
+    }
 }
