@@ -159,20 +159,24 @@ mod test {
             (a3, b3, c3)
         );
     }
-
+    use crate::venv::Venv;
     use std::process::Command;
     #[test]
     fn venv_test() {
+        let venv = Venv::new().init().unwrap();
+        venv.try_ready().unwrap_or_else(|_| {
+            venv.ivyper_venv(None).unwrap()
+        });     
         let out = Command::new("./venv/scripts/vyper")
-            .arg("./multisig.vy")
-            .output()
-            .unwrap();
+                .arg("./multisig.vy")
+                .output()
+                .unwrap();
         assert!(out.status.success());
         println!("{}", String::from_utf8_lossy(&out.stdout).to_string());
     }
 
     #[test]
     fn version_detect() {
-        Vyper::installed_version().unwrap();
+        Vyper::get_version().unwrap();
     }
 }
