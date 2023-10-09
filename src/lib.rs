@@ -164,13 +164,12 @@ mod test {
     #[test]
     fn venv_test() {
         let venv = Venv::new().init().unwrap();
-        venv.try_ready().unwrap_or_else(|_| {
-            venv.ivyper_venv(None).unwrap()
-        });     
+        venv.try_ready()
+            .unwrap_or_else(|_| venv.ivyper_venv(None).unwrap());
         let out = Command::new("./venv/scripts/vyper")
-                .arg("./multisig.vy")
-                .output()
-                .unwrap();
+            .arg("./multisig.vy")
+            .output()
+            .unwrap();
         assert!(out.status.success());
         println!("{}", String::from_utf8_lossy(&out.stdout).to_string());
     }

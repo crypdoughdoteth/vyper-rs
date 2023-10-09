@@ -1,8 +1,8 @@
 use crate::vyper_errors::CompilerError;
 use anyhow::{bail, Result};
 use itertools::izip;
+use serde::{Deserialize, Serialize};
 use serde_json::{to_writer_pretty, Value};
-use serde::{Serialize, Deserialize};
 use std::{
     error::Error,
     fmt::Display,
@@ -14,7 +14,9 @@ use std::{
 };
 
 /// Represents important information about a Vyper contract
-#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Default, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Default, Serialize, Deserialize,
+)]
 pub struct Vyper {
     pub path_to_code: PathBuf,
     pub bytecode: Option<String>,
@@ -47,12 +49,14 @@ impl Vyper {
     pub fn exists() -> bool {
         Command::new("vyper").arg("-h").output().is_ok()
     }
-   
+
     /// check the version of the vyper compiler
     pub fn get_version() -> Result<String, Box<dyn Error>> {
-       let out = Command::new("vyper").arg("--version").output()?; 
+        let out = Command::new("vyper").arg("--version").output()?;
         if !out.status.success() {
-           return Err(Box::new(CompilerError::new("Couldn't locate version info, installation does not exist".to_string())))
+            return Err(Box::new(CompilerError::new(
+                "Couldn't locate version info, installation does not exist".to_string(),
+            )));
         }
         Ok(String::from_utf8_lossy(&out.stdout).to_string())
     }
@@ -340,7 +344,9 @@ impl Vyper {
 }
 
 /// Represents multiple vyper contracts
-#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Default, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Default, Serialize, Deserialize,
+)]
 pub struct Vypers {
     pub path_to_code: Vec<PathBuf>,
     pub bytecode: Option<Vec<String>>,
