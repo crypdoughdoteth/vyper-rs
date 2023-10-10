@@ -10,7 +10,7 @@ pub mod vyper_errors;
 mod test {
     use super::*;
     use crate::vyper::{Evm, Vyper, Vypers};
-    use std::path::{Path, PathBuf};
+    use std::path::PathBuf;
 
     #[test]
     fn basic() {
