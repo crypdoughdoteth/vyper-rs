@@ -13,7 +13,8 @@ pub struct NotInitialized;
 pub struct Initialized;
 
 /// Declined to activate a venv
-/// can call `ivyper_pip()` to install vyper globablly
+/// can call `ivyper_pip()` to install vyper globablly with pip3
+/// can call try_ready() to check if vyper is installed and transition to Complete
 #[derive(Clone, Copy, Eq, PartialEq, Debug)]
 pub struct Skip;
 /// Vyper was installed successfully into venv or already exists.
@@ -27,10 +28,17 @@ pub struct Complete;
 /// This state machine represents all valid states for the venv and vyper compiler.
 /// While this works with and without a venv, it is strongly recommended to use a venv.
 /// Creating a venv with this program is simple, just call `new()` to construct the type and
-/// `init()` to create the venv (if not already created). If you created a venv, then you can call
-/// the installation method ivyper_venv. Otherwise, this step can be skipped in favor of
-/// transitioning to the ready state immediately. Under Venv<Ready> are methods that are executed
-/// inside your venv. This is not true for the Vyper module.
+/// `init()` to create the venv (if not already created). If you called init(), then you can call
+/// the installation method ivyper_venv(). There is an optional argument that takes in the desired
+/// compiler version. You may call try_ready() if the compiler is already installed in your venv. 
+/// Otherwise, this step be skipped with the skip() method in order to install vyper globally or use a preexisting installation. 
+/// The accompanying installation method is called ivyper_pip() and try_ready() is also available in this namespace.
+/// Both of these methods under Venv<Skip> return a Complete state. When this is reached, you may know with certainty
+/// that a version of Vyper is installed globally with pip and you can safely use the methods in
+/// the Vyper module. Likewise, when the state is Venv<Ready>, you
+/// may use the namespace to access methods for use inside the venv. Methods inside the Venv<Ready>
+/// namespace are mostly equivalent to the ones in the Vyper module, thus you can rely on the
+/// documentation for these methods inside the Venv module. 
 ///   
 //  States:
 //
@@ -94,12 +102,8 @@ impl Venv<NotInitialized> {
         }
     }
 
-    /// Init will check whether or not a venv was created by this program
-    /// If the venv exists, then we activate it
-    /// Otherwise, we need to create one
-    /// Platform agnostic by matching aginst the target OS
-    /// One for Bash one for CMD  
-    /// Once the Venv is created, we activate it too
+    /// Init will check whether or not a venv was created by this program 
+    /// If it was not, we will create one
     pub fn init(self) -> anyhow::Result<Venv<Initialized>> {
         match Path::new("./venv").exists() {
             true => Ok(Venv {
@@ -189,7 +193,8 @@ impl Venv<Initialized> {
             }
         }
     }
-
+    /// Check to see if Vyper is installed in a Venv. If so, transition state to Ready and
+    /// access to the methods of this namespace.
     pub fn try_ready(self) -> anyhow::Result<Venv<Ready>> {
         if cfg!(target_os = "windows") {
             match Path::new("./venv/scripts/vyper").exists() {
@@ -240,6 +245,7 @@ impl Venv<Skip> {
             state: std::marker::PhantomData::<Complete>,
         })
     }
+    /// Transition to Complete if the Vyper compiler is installed globally
     pub fn try_ready(self) -> anyhow::Result<Venv<Complete>> {
         match Vyper::exists() {
             true => Ok(Venv {
