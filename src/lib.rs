@@ -10,7 +10,7 @@ pub mod vyper_errors;
 mod test {
     use super::*;
     use crate::vyper::{Evm, Vyper, Vypers};
-    use std::path::PathBuf;
+    use std::path::{Path, PathBuf};
 
     #[test]
     fn basic() {
@@ -160,18 +160,12 @@ mod test {
         );
     }
     use crate::venv::Venv;
-    use std::process::Command;
     #[test]
     fn venv_test() {
-        let venv = Venv::new().init().unwrap();
-        venv.try_ready()
-            .unwrap_or_else(|_| venv.ivyper_venv(None).unwrap());
-        let out = Command::new("./venv/scripts/vyper")
-            .arg("./multisig.vy")
-            .output()
-            .unwrap();
-        assert!(out.status.success());
-        println!("{}", String::from_utf8_lossy(&out.stdout).to_string());
+        let venv = Venv::new().init().unwrap().ivyper_venv(None).unwrap();
+        let mut contract =
+            Vyper::new(PathBuf::from("./multisig.vy"), PathBuf::from("./abi.json"));
+        venv.compile(&mut contract).unwrap();
     }
 
     #[test]
