@@ -36,14 +36,14 @@ macro_rules! vypers{
 }
 
 /// Instantiates the vyper struct using vyper! and compiles the contract too. Accepts two string
-/// literals for the paths of the Vyper struct. 
+/// literals for the paths of the Vyper struct.
 #[macro_export]
 macro_rules! compile {
     // classic, simple
     ($p1: literal, $p2: literal) => {
-        {     
-            let mut vy: Vyper = vyper!($p1, $p2); 
-            vy.compile().unwrap(); 
+        {
+            let mut vy: Vyper = vyper!($p1, $p2);
+            vy.compile().unwrap();
             vy
         }
     };
@@ -59,8 +59,8 @@ macro_rules! compile {
     // EVM Target: Paris
     (paris $p1: literal, $p2: literal) => {
         {
-            let mut vy: Vyper = vyper!($p1, $p2); 
-            vy.compile_ver(Evm::Paris).unwrap(); 
+            let mut vy: Vyper = vyper!($p1, $p2);
+            vy.compile_ver(Evm::Paris).unwrap();
             vy
         }
     };
@@ -86,7 +86,7 @@ macro_rules! compile {
             cs
         }
     };
-    // compile many in venv  
+    // compile many in venv
     (venv $($p1: literal, $p2: literal),+) => {
         {
             let mut contracts: Vec<Vyper> = vec![];
@@ -95,12 +95,12 @@ macro_rules! compile {
                 contracts.push(v);
             )+
             let mut cs: Vypers = contracts.into();
-            let venv: Venv<Ready> = venv!(); 
+            let venv: Venv<Ready> = venv!();
             venv.compile_many(&mut cs).await.unwrap();
             (cs, venv)
         }
     };
-   // Compile many for Paris 
+   // Compile many for Paris
     (paris $($p1: literal, $p2: literal),+) => {
         {
             let mut contracts: Vec<Vyper> = vec![];
@@ -113,7 +113,7 @@ macro_rules! compile {
             cs
         }
     };
-    // compile many for paris inside venv 
+    // compile many for paris inside venv
     (venv paris $($p1: literal, $p2: literal),+) => {
         {
             let mut contracts: Vec<Vyper> = vec![];
@@ -122,7 +122,7 @@ macro_rules! compile {
                 contracts.push(v);
             )+
             let mut cs: Vypers = contracts.into();
-            let venv: Venv<Ready> = venv!(); 
+            let venv: Venv<Ready> = venv!();
             venv.compile_many_ver(&mut cs, Evm::Paris).await.unwrap();
             (cs, venv)
         }
@@ -130,22 +130,22 @@ macro_rules! compile {
 }
 
 /// Instanitates the vyper struct and compiles the contract using compile! and generates an
-/// abi file. Accepts two string literals for the paths of the Vyper struct. 
+/// abi file. Accepts two string literals for the paths of the Vyper struct.
 #[macro_export]
 macro_rules! abi {
     // OG matcher
     ($p1: literal, $p2: literal) => {
         {
             let c: Vyper = compile!($p1, $p2);
-            c.abi().unwrap(); 
+            c.abi().unwrap();
             c
         }
     };
-    // OG matcher with a venv 
+    // OG matcher with a venv
     (venv $p1: literal, $p2: literal) => {
         {
             let (c, v): (Vyper, Venv<Ready>) = compile!(venv $p1, $p2);
-            v.abi(&c).unwrap(); 
+            v.abi(&c).unwrap();
             (c, v)
         }
     };
@@ -157,7 +157,7 @@ macro_rules! abi {
             (c, abi)
         }
     };
-    // returns the ABI as JSON, Vypers struct, and Venv 
+    // returns the ABI as JSON, Vypers struct, and Venv
     (venv get $p1: literal, $p2: literal) => {
         {
             let (c, v): (Vyper, Venv<Ready>) = compile!(venv $p1, $p2);
@@ -169,11 +169,11 @@ macro_rules! abi {
     (paris $p1: literal, $p2: literal) => {
         {
             let c: Vyper = compile!(paris $p1, $p2);
-            c.abi().unwrap(); 
+            c.abi().unwrap();
             c
         }
     };
-    // return abi in json form, compile for paris 
+    // return abi in json form, compile for paris
     (get paris $p1: literal, $p2: literal) => {
         {
             let c: Vyper = compile!(paris $p1, $p2);
@@ -181,19 +181,19 @@ macro_rules! abi {
             (c, abi)
         }
     };
-    // gen abi, compile for paris 
+    // gen abi, compile for paris
     (venv paris $p1: literal, $p2: literal) => {
         {
             let (c, v): (Vyper, Venv<Ready>) = compile!(venv paris $p1, $p2);
-            v.abi(&c).unwrap(); 
+            v.abi(&c).unwrap();
             (c, v)
         }
     };
-    // returns contract, abi in JSON form, venv 
+    // returns contract, abi in JSON form, venv
     (venv get paris $p1: literal, $p2: literal) => {
         {
             let (c, v): (Vyper, Venv<Ready>) = compile!(venv paris $p1, $p2);
-            let abi = v.abi_json(&c).unwrap(); 
+            let abi = v.abi_json(&c).unwrap();
             (c, abi, v)
         }
     };
@@ -240,8 +240,8 @@ macro_rules! abi {
             venv.abi_many(&cs).await.unwrap();
             (cs, venv)
         }
-    };   
-    // return many ABIs w/ venv 
+    };
+    // return many ABIs w/ venv
     (venv get $($p1: literal, $p2: literal),+) => {
         {
             let mut contracts: Vec<Vyper> = vec![];
@@ -270,7 +270,7 @@ macro_rules! abi {
             cs
         }
     };
-    // gen abis compiled for Paris hard fork w/ venv 
+    // gen abis compiled for Paris hard fork w/ venv
     (venv paris $($p1: literal, $p2: literal),+) => {
         {
             let mut contracts: Vec<Vyper> = vec![];
@@ -285,7 +285,7 @@ macro_rules! abi {
             (cs, venv)
         }
     };
-    // return many abis compiled for paris 
+    // return many abis compiled for paris
     (get paris $($p1: literal, $p2: literal),+) => {
         {
             let mut contracts: Vec<Vyper> = vec![];
@@ -318,23 +318,15 @@ macro_rules! abi {
 
 #[macro_export]
 macro_rules! venv {
-    () => {
-        {
-            Venv::new()
-                .init()
-                .unwrap()
-                .ivyper_venv(None)
-                .unwrap()
-        }
-    };
-    ($ver: literal) => {
-        {
-            let version: &str = $ver;
-            Venv::new()
-                .init()
-                .unwrap()
-                .ivyper_venv(Some(version))
-                .unwrap()
-        }
-    }
+    () => {{
+        Venv::new().init().unwrap().ivyper_venv(None).unwrap()
+    }};
+    ($ver: literal) => {{
+        let version: &str = $ver;
+        Venv::new()
+            .init()
+            .unwrap()
+            .ivyper_venv(Some(version))
+            .unwrap()
+    }};
 }

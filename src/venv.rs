@@ -30,15 +30,15 @@ pub struct Complete;
 /// Creating a venv with this program is simple, just call `new()` to construct the type and
 /// `init()` to create the venv (if not already created). If you called init(), then you can call
 /// the installation method ivyper_venv(). There is an optional argument that takes in the desired
-/// compiler version. You may call try_ready() if the compiler is already installed in your venv. 
-/// Otherwise, this step be skipped with the skip() method in order to install vyper globally or use a preexisting installation. 
+/// compiler version. You may call try_ready() if the compiler is already installed in your venv.
+/// Otherwise, this step be skipped with the skip() method in order to install vyper globally or use a preexisting installation.
 /// The accompanying installation method is called ivyper_pip() and try_ready() is also available in this namespace.
 /// Both of these methods under Venv<Skip> return a Complete state. When this is reached, you may know with certainty
 /// that a version of Vyper is installed globally with pip and you can safely use the methods in
 /// the Vyper module. Likewise, when the state is Venv<Ready>, you
 /// may use the namespace to access methods for use inside the venv. Methods inside the Venv<Ready>
 /// namespace are mostly equivalent to the ones in the Vyper module, thus you can rely on the
-/// documentation for these methods inside the Venv module. 
+/// documentation for these methods inside the Venv module.
 ///   
 //  States:
 //
@@ -102,7 +102,7 @@ impl Venv<NotInitialized> {
         }
     }
 
-    /// Init will check whether or not a venv was created by this program 
+    /// Init will check whether or not a venv was created by this program
     /// If it was not, we will create one
     pub fn init(self) -> anyhow::Result<Venv<Initialized>> {
         match Path::new("./venv").exists() {
@@ -783,9 +783,9 @@ impl Venv<Ready> {
                         .arg(&c[i])
                         .output()?;
                     if compiler_output.status.success() {
-                        let json = serde_json::from_str::<Value>(&String::from_utf8_lossy(
-                            &compiler_output.stdout,
-                        ))?;
+                        let json = serde_json::from_str::<Value>(
+                            &String::from_utf8_lossy(&compiler_output.stdout),
+                        )?;
                         let file = File::create(&abi[i])?;
                         to_writer_pretty(file, &json)?;
                     } else {
@@ -793,21 +793,21 @@ impl Venv<Ready> {
                     }
                     Ok(())
                 } else {
-                     let compiler_output = Command::new("./venv/bin/vyper")
+                    let compiler_output = Command::new("./venv/bin/vyper")
                         .arg("-f")
                         .arg("abi")
                         .arg(&c[i])
                         .output()?;
                     if compiler_output.status.success() {
-                        let json = serde_json::from_str::<Value>(&String::from_utf8_lossy(
-                            &compiler_output.stdout,
-                        ))?;
+                        let json = serde_json::from_str::<Value>(
+                            &String::from_utf8_lossy(&compiler_output.stdout),
+                        )?;
                         let file = File::create(&abi[i])?;
                         to_writer_pretty(file, &json)?;
                     } else {
                         bail!(String::from_utf8_lossy(&compiler_output.stderr).to_string())
                     }
-                    Ok(())                                       
+                    Ok(())
                 }
             });
             threads.push(cthread);
@@ -818,7 +818,10 @@ impl Venv<Ready> {
         Ok(())
     }
 
-    pub async fn abi_json_many(&self, contracts: &Vypers) -> Result<Vec<Value>, Box<dyn Error>> {
+    pub async fn abi_json_many(
+        &self,
+        contracts: &Vypers,
+    ) -> Result<Vec<Value>, Box<dyn Error>> {
         let c_path = Arc::new(contracts.path_to_code.clone());
         let mut threads = vec![];
         for i in 0..contracts.path_to_code.len() {
@@ -831,28 +834,27 @@ impl Venv<Ready> {
                         .arg(&c[i])
                         .output()?;
                     if compiler_output.status.success() {
-                        let json = serde_json::from_str::<Value>(&String::from_utf8_lossy(
-                            &compiler_output.stdout,
-                        ))?;  
+                        let json = serde_json::from_str::<Value>(
+                            &String::from_utf8_lossy(&compiler_output.stdout),
+                        )?;
                         Ok(json)
                     } else {
                         bail!(String::from_utf8_lossy(&compiler_output.stderr).to_string())
                     }
-
                 } else {
-                     let compiler_output = Command::new("./venv/bin/vyper")
+                    let compiler_output = Command::new("./venv/bin/vyper")
                         .arg("-f")
                         .arg("abi")
                         .arg(&c[i])
                         .output()?;
                     if compiler_output.status.success() {
-                        let json = serde_json::from_str::<Value>(&String::from_utf8_lossy(
-                            &compiler_output.stdout,
-                        ))?;
-                        Ok(json)      
+                        let json = serde_json::from_str::<Value>(
+                            &String::from_utf8_lossy(&compiler_output.stdout),
+                        )?;
+                        Ok(json)
                     } else {
                         bail!(String::from_utf8_lossy(&compiler_output.stderr).to_string())
-                    } 
+                    }
                 }
             });
             threads.push(cthread);
@@ -863,6 +865,5 @@ impl Venv<Ready> {
             res_vec.push(child_thread.await??);
         }
         Ok(res_vec)
-
     }
 }

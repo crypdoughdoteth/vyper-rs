@@ -64,7 +64,7 @@ impl Vyper {
     /// Compiles a vyper contract by invoking the vyper compiler, updates the ABI field in the Vyper struct
     pub fn compile(&mut self) -> Result<(), Box<dyn Error>> {
         let compiler_output = Command::new("vyper").arg(&self.path_to_code).output()?;
-        if compiler_output.status.success() { 
+        if compiler_output.status.success() {
             let mut out = String::from_utf8_lossy(&compiler_output.stdout).to_string();
             for _ in 0..2 {
                 out.pop();
@@ -85,12 +85,10 @@ impl Vyper {
             .arg(&self.path_to_code)
             .output()?;
         if compiler_output.status.success() {
-            
             let out = String::from_utf8_lossy(&compiler_output.stdout).to_string();
             self.bytecode = Some(out);
             Ok(())
         } else {
-           
             return Err(Box::new(CompilerError::new(
                 String::from_utf8_lossy(&compiler_output.stderr).to_string(),
             )));
@@ -106,7 +104,6 @@ impl Vyper {
             .output()?;
 
         if compiler_output.status.success() {
-           
             let mut out = String::from_utf8_lossy(&compiler_output.stdout).to_string();
             for _ in 0..2 {
                 out.pop();
@@ -134,7 +131,7 @@ impl Vyper {
             let file = File::create(&self.abi)?;
             to_writer_pretty(file, &json)?;
             Ok(())
-        } else { 
+        } else {
             return Err(Box::new(CompilerError::new(
                 String::from_utf8_lossy(&compiler_output.stderr).to_string(),
             )));
@@ -154,7 +151,7 @@ impl Vyper {
                 &compiler_output.stdout,
             ))?;
             Ok(json)
-        } else { 
+        } else {
             return Err(Box::new(CompilerError::new(
                 String::from_utf8_lossy(&compiler_output.stderr).to_string(),
             )));
@@ -176,7 +173,7 @@ impl Vyper {
             let file = File::create("./storage_layout.json")?;
             to_writer_pretty(file, &json)?;
             Ok(())
-        } else { 
+        } else {
             return Err(Box::new(CompilerError::new(
                 String::from_utf8_lossy(&compiler_output.stderr).to_string(),
             )));
@@ -284,7 +281,7 @@ impl Vyper {
             let mut buffer = BufWriter::new(File::create("./devdoc.txt")?);
             buffer.write_all(&compiler_output.stdout)?;
             Ok(())
-        } else { 
+        } else {
             return Err(Box::new(CompilerError::new(
                 String::from_utf8_lossy(&compiler_output.stderr).to_string(),
             )));
