@@ -768,4 +768,101 @@ impl Venv<Ready> {
         contracts.bytecode = Some(out_vec);
         Ok(())
     }
+    pub async fn abi_many(&self, contracts: &Vypers) -> Result<(), Box<dyn Error>> {
+        let c_path = Arc::new(contracts.path_to_code.clone());
+        let abi_path = Arc::new(contracts.abi.clone());
+        let mut threads = vec![];
+        for i in 0..contracts.path_to_code.len() {
+            let c = Arc::clone(&c_path);
+            let abi = Arc::clone(&abi_path);
+            let cthread = tokio::spawn(async move {
+                if cfg!(target_os = "windows") {
+                    let compiler_output = Command::new("./venv/scripts/vyper")
+                        .arg("-f")
+                        .arg("abi")
+                        .arg(&c[i])
+                        .output()?;
+                    if compiler_output.status.success() {
+                        let json = serde_json::from_str::<Value>(&String::from_utf8_lossy(
+                            &compiler_output.stdout,
+                        ))?;
+                        let file = File::create(&abi[i])?;
+                        to_writer_pretty(file, &json)?;
+                    } else {
+                        bail!(String::from_utf8_lossy(&compiler_output.stderr).to_string())
+                    }
+                    Ok(())
+                } else {
+                     let compiler_output = Command::new("./venv/bin/vyper")
+                        .arg("-f")
+                        .arg("abi")
+                        .arg(&c[i])
+                        .output()?;
+                    if compiler_output.status.success() {
+                        let json = serde_json::from_str::<Value>(&String::from_utf8_lossy(
+                            &compiler_output.stdout,
+                        ))?;
+                        let file = File::create(&abi[i])?;
+                        to_writer_pretty(file, &json)?;
+                    } else {
+                        bail!(String::from_utf8_lossy(&compiler_output.stderr).to_string())
+                    }
+                    Ok(())                                       
+                }
+            });
+            threads.push(cthread);
+        }
+        for child_thread in threads {
+            child_thread.await.unwrap()?
+        }
+        Ok(())
+    }
+
+    pub async fn abi_json_many(&self, contracts: &Vypers) -> Result<Vec<Value>, Box<dyn Error>> {
+        let c_path = Arc::new(contracts.path_to_code.clone());
+        let mut threads = vec![];
+        for i in 0..contracts.path_to_code.len() {
+            let c = Arc::clone(&c_path);
+            let cthread = tokio::spawn(async move {
+                if cfg!(target_os = "windows") {
+                    let compiler_output = Command::new("./venv/scripts/vyper")
+                        .arg("-f")
+                        .arg("abi")
+                        .arg(&c[i])
+                        .output()?;
+                    if compiler_output.status.success() {
+                        let json = serde_json::from_str::<Value>(&String::from_utf8_lossy(
+                            &compiler_output.stdout,
+                        ))?;  
+                        Ok(json)
+                    } else {
+                        bail!(String::from_utf8_lossy(&compiler_output.stderr).to_string())
+                    }
+
+                } else {
+                     let compiler_output = Command::new("./venv/bin/vyper")
+                        .arg("-f")
+                        .arg("abi")
+                        .arg(&c[i])
+                        .output()?;
+                    if compiler_output.status.success() {
+                        let json = serde_json::from_str::<Value>(&String::from_utf8_lossy(
+                            &compiler_output.stdout,
+                        ))?;
+                        Ok(json)      
+                    } else {
+                        bail!(String::from_utf8_lossy(&compiler_output.stderr).to_string())
+                    } 
+                }
+            });
+            threads.push(cthread);
+        }
+
+        let mut res_vec = Vec::new();
+        for child_thread in threads {
+            res_vec.push(child_thread.await??);
+        }
+        Ok(res_vec)
+
+    }
 }

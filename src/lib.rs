@@ -5,6 +5,7 @@ pub mod utils;
 pub mod venv;
 pub mod vyper;
 pub mod vyper_errors;
+pub mod macros;
 
 #[cfg(test)]
 mod test {
@@ -155,7 +156,7 @@ mod test {
             (a3, b3, c3)
         );
     }
-    use crate::venv::Venv;
+    use crate::venv::{Venv, Ready};
     #[test]
     fn venv_test() {
         let venv = Venv::new().init().unwrap().ivyper_venv(None).unwrap();
@@ -167,5 +168,114 @@ mod test {
     #[test]
     fn version_detect() {
         Vyper::get_version().unwrap();
+    }
+    
+    #[test]
+    fn vyper_macro_test() {
+        let c = vyper!("./multisig.vy", "./abi.json");
+        let c_assertion = Vyper::new(PathBuf::from("./multisig.vy"), PathBuf::from("./abi.json"));
+        assert_eq!(c, c_assertion);
+        let c2_assertion = vec![
+            Vyper::new(PathBuf::from("./multisig.vy"), PathBuf::from("./abi.json")), 
+            Vyper::new(PathBuf::from("./multisig.vy"), PathBuf::from("./abi.json"))
+        ];
+        let c2 = vyper!("./multisig.vy", "./abi.json", "./multisig.vy", "./abi.json");
+        assert_eq!(c2, c2_assertion); 
+    }
+
+    #[test]
+    fn vypers_macro_test() {
+        let vys_assertion = Vypers::new(vec![PathBuf::from("./multisig.vy"), PathBuf::from("./multisig.vy")], vec![PathBuf::from("./abi.json"), PathBuf::from("./abi.json")]); 
+        let vys = vypers!("./multisig.vy", "./abi.json", "./multisig.vy", "./abi.json");
+        assert_eq!(vys, vys_assertion); 
+    }
+
+    #[test]
+    fn compile_macro_test() {
+        let mut contract_assertion = vyper!("./multisig.vy", "./abi.json");
+        contract_assertion.compile().unwrap();
+        let contract = compile!("./multisig.vy", "./abi.json");
+        assert_eq!(contract, contract_assertion);
+    }
+    
+    #[test]
+    fn compile_mt_macro_test() { 
+        tokio_test::block_on( async {
+            let mut vys_assertion = vypers!("./multisig.vy", "./abi.json", "./multisig.vy", "./abi.json");
+            vys_assertion.compile_many().await.unwrap();
+            let vys = compile!("./multisig.vy", "./abi.json", "./multisig.vy", "./abi.json");
+            assert_eq!(vys, vys_assertion);
+        })
+    }
+
+    #[test]
+    fn compabi_macro_test() {
+        let c_assertion = compile!("./multisig.vy", "./abi.json");
+        c_assertion.abi().unwrap();
+        let c = abi!("./multisig.vy", "./abi.json");
+        assert_eq!(c, c_assertion);
+    }
+
+    #[test]
+    fn compabi_mt_macro_test() {
+        tokio_test::block_on( async {
+            let vys_assertion = compile!("./multisig.vy", "./abi.json", "./multisig.vy", "./abi.json");
+            vys_assertion.abi_json_many().await.unwrap(); 
+            let vys = abi!("./multisig.vy", "./abi.json", "./multisig.vy", "./abi.json");
+            assert_eq!(vys, vys_assertion);
+        })
+    }
+
+    #[test] 
+    fn compabijson_macro_test() {
+        let c_assertion = compile!("./multisig.vy", "./abi.json");
+        let abi = c_assertion.abi_json().unwrap();
+        let c = abi!(get "./multisig.vy", "./abi.json");
+        assert_eq!(c, (c_assertion, abi));   
+    }
+
+    #[test]
+    fn compabijson_mt_macro_test() { 
+        tokio_test::block_on( async {
+            let vys_assertion = compile!("./multisig.vy", "./abi.json", "./multisig.vy", "./abi.json");
+            let abis = vys_assertion.abi_json_many().await.unwrap(); 
+            let vys = abi!(get "./multisig.vy", "./abi.json", "./multisig.vy", "./abi.json");
+            assert_eq!(vys, (vys_assertion, abis));
+        })
+    }
+    
+    #[test]
+    fn venv_macro_test(){
+        let _ : Venv<Ready> = venv!();
+        let _ : Venv<Ready> = venv!("0.3.10"); 
+    }
+    
+    #[test]
+    fn venv_compile_macro_test() { 
+        let (_, _): (Vyper, Venv<Ready>) = compile!(venv "./multisig.vy", "./abi.json");
+        let _ : Vyper = compile!(paris "./multisig.vy", "./abi.json");
+        let (_, _): (Vyper, Venv<Ready>) = compile!(venv paris "./multisig.vy", "./abi.json");
+        tokio_test::block_on( async {
+            let _ = compile!(venv "./multisig.vy", "./abi.json", "./multisig.vy", "./abi.json");
+            let _ = compile!(paris "./multisig.vy", "./abi.json", "./multisig.vy", "./abi.json");
+            let _ = compile!(venv paris "./multisig.vy", "./abi.json", "./multisig.vy", "./abi.json"); 
+        })
+    }
+    #[test]
+    fn more_abi_tests() {
+        tokio_test::block_on( async {
+            let _ = abi!(venv "./multisig.vy", "./abi.json", "./multisig.vy", "./abi.json");   
+            let _ = abi!(venv get "./multisig.vy", "./abi.json", "./multisig.vy", "./abi.json");    
+            let _ = abi!(paris "./multisig.vy", "./abi.json", "./multisig.vy", "./abi.json");    
+            let _ = abi!(venv paris "./multisig.vy", "./abi.json", "./multisig.vy", "./abi.json");    
+            let _ = abi!(get paris "./multisig.vy", "./abi.json", "./multisig.vy", "./abi.json");    
+            let _ = abi!(venv get paris "./multisig.vy", "./abi.json", "./multisig.vy", "./abi.json");    
+            let _ = abi!(venv "./multisig.vy", "./abi.json");   
+            let _ = abi!(venv get "./multisig.vy", "./abi.json");    
+            let _ = abi!(paris "./multisig.vy", "./abi.json");    
+            let _ = abi!(venv paris "./multisig.vy", "./abi.json");    
+            let _ = abi!(get paris "./multisig.vy", "./abi.json");    
+            let _ = abi!(venv get paris "./multisig.vy", "./abi.json");  
+        });
     }
 }
