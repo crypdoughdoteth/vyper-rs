@@ -362,7 +362,7 @@ impl Venv<Ready> {
         Ok(())
     }
 
-    pub fn abi(&self, contract: &Vyper) -> anyhow::Result<()> {
+    pub fn gen_abi(&self, contract: &Vyper) -> anyhow::Result<()> {
         if cfg!(target_os = "windows") {
             let output = Command::new("./venv/scripts/vyper")
                 .arg("-f")
@@ -399,7 +399,7 @@ impl Venv<Ready> {
         Ok(())
     }
 
-    pub fn abi_json(&self, contract: &Vyper) -> anyhow::Result<Value> {
+    pub fn get_abi(&self, contract: &Vyper) -> anyhow::Result<Value> {
         if cfg!(target_os = "windows") {
             let output = Command::new("./venv/scripts/vyper")
                 .arg("-f")
@@ -768,7 +768,7 @@ impl Venv<Ready> {
         contracts.bytecode = Some(out_vec);
         Ok(())
     }
-    pub async fn abi_many(&self, contracts: &Vypers) -> Result<(), Box<dyn Error>> {
+    pub async fn gen_abi_many(&self, contracts: &Vypers) -> Result<(), Box<dyn Error>> {
         let c_path = Arc::new(contracts.path_to_code.clone());
         let abi_path = Arc::new(contracts.abi.clone());
         let mut threads = vec![];
@@ -818,7 +818,7 @@ impl Venv<Ready> {
         Ok(())
     }
 
-    pub async fn abi_json_many(
+    pub async fn get_abi_many(
         &self,
         contracts: &Vypers,
     ) -> Result<Vec<Value>, Box<dyn Error>> {

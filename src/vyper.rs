@@ -117,7 +117,7 @@ impl Vyper {
         }
     }
     /// Generates the ABI and creates a file @ the abi path specified in the Vyper struct
-    pub fn abi(&self) -> Result<(), Box<dyn Error>> {
+    pub fn gen_abi(&self) -> Result<(), Box<dyn Error>> {
         let compiler_output = Command::new("vyper")
             .arg("-f")
             .arg("abi")
@@ -139,7 +139,7 @@ impl Vyper {
     }
 
     /// Generates the ABI and creates a file @ the abi path specified in the Vyper struct
-    pub fn abi_json(&self) -> Result<Value, Box<dyn Error>> {
+    pub fn get_abi(&self) -> Result<Value, Box<dyn Error>> {
         let compiler_output = Command::new("vyper")
             .arg("-f")
             .arg("abi")
@@ -385,7 +385,7 @@ impl Vypers {
     }
 
     /// Generates ABIs for each vyper contract concurrently
-    pub async fn abi_many(&self) -> Result<(), Box<dyn Error>> {
+    pub async fn gen_abi_many(&self) -> Result<(), Box<dyn Error>> {
         let c_path = Arc::new(self.path_to_code.clone());
         let abi_path = Arc::new(self.abi.clone());
         let mut threads = vec![];
@@ -417,7 +417,7 @@ impl Vypers {
         Ok(())
     }
 
-    pub async fn abi_json_many(&self) -> Result<Vec<Value>, Box<dyn Error>> {
+    pub async fn get_abi_many(&self) -> Result<Vec<Value>, Box<dyn Error>> {
         let c_path = Arc::new(self.path_to_code.clone());
         let mut threads = vec![];
         for i in 0..self.path_to_code.len() {

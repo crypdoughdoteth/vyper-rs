@@ -19,7 +19,7 @@ mod test {
         let abi_path = PathBuf::from("./abi.json");
         let mut vyper_contract = Vyper::new(path, abi_path);
         vyper_contract.compile().unwrap();
-        vyper_contract.abi().unwrap();
+        vyper_contract.gen_abi().unwrap();
     }
 
     #[test]
@@ -220,7 +220,7 @@ mod test {
     #[test]
     fn compabi_macro_test() {
         let c_assertion = compile!("./multisig.vy", "./abi.json");
-        c_assertion.abi().unwrap();
+        c_assertion.gen_abi().unwrap();
         let c = abi!("./multisig.vy", "./abi.json");
         assert_eq!(c, c_assertion);
     }
@@ -230,7 +230,7 @@ mod test {
         tokio_test::block_on(async {
             let vys_assertion =
                 compile!("./multisig.vy", "./abi.json", "./multisig.vy", "./abi.json");
-            vys_assertion.abi_json_many().await.unwrap();
+            vys_assertion.get_abi_many().await.unwrap();
             let vys = abi!("./multisig.vy", "./abi.json", "./multisig.vy", "./abi.json");
             assert_eq!(vys, vys_assertion);
         })
@@ -239,7 +239,7 @@ mod test {
     #[test]
     fn compabijson_macro_test() {
         let c_assertion = compile!("./multisig.vy", "./abi.json");
-        let abi = c_assertion.abi_json().unwrap();
+        let abi = c_assertion.get_abi().unwrap();
         let c = abi!(get "./multisig.vy", "./abi.json");
         assert_eq!(c, (c_assertion, abi));
     }
@@ -249,7 +249,7 @@ mod test {
         tokio_test::block_on(async {
             let vys_assertion =
                 compile!("./multisig.vy", "./abi.json", "./multisig.vy", "./abi.json");
-            let abis = vys_assertion.abi_json_many().await.unwrap();
+            let abis = vys_assertion.get_abi_many().await.unwrap();
             let vys =
                 abi!(get "./multisig.vy", "./abi.json", "./multisig.vy", "./abi.json");
             assert_eq!(vys, (vys_assertion, abis));

@@ -137,7 +137,7 @@ macro_rules! abi {
     ($p1: literal, $p2: literal) => {
         {
             let c: Vyper = compile!($p1, $p2);
-            c.abi().unwrap();
+            c.gen_abi().unwrap();
             c
         }
     };
@@ -145,7 +145,7 @@ macro_rules! abi {
     (venv $p1: literal, $p2: literal) => {
         {
             let (c, v): (Vyper, Venv<Ready>) = compile!(venv $p1, $p2);
-            v.abi(&c).unwrap();
+            v.gen_abi(&c).unwrap();
             (c, v)
         }
     };
@@ -153,7 +153,7 @@ macro_rules! abi {
     (get $p1: literal, $p2: literal) => {
         {
             let c: Vyper = compile!($p1, $p2);
-            let abi = c.abi_json().unwrap();
+            let abi = c.get_abi().unwrap();
             (c, abi)
         }
     };
@@ -161,7 +161,7 @@ macro_rules! abi {
     (venv get $p1: literal, $p2: literal) => {
         {
             let (c, v): (Vyper, Venv<Ready>) = compile!(venv $p1, $p2);
-            let abi = v.abi_json(&c).unwrap();
+            let abi = v.get_abi(&c).unwrap();
             (c, abi, v)
         }
     };
@@ -169,7 +169,7 @@ macro_rules! abi {
     (paris $p1: literal, $p2: literal) => {
         {
             let c: Vyper = compile!(paris $p1, $p2);
-            c.abi().unwrap();
+            c.gen_abi().unwrap();
             c
         }
     };
@@ -177,7 +177,7 @@ macro_rules! abi {
     (get paris $p1: literal, $p2: literal) => {
         {
             let c: Vyper = compile!(paris $p1, $p2);
-            let abi = c.abi_json().unwrap();
+            let abi = c.get_abi().unwrap();
             (c, abi)
         }
     };
@@ -185,7 +185,7 @@ macro_rules! abi {
     (venv paris $p1: literal, $p2: literal) => {
         {
             let (c, v): (Vyper, Venv<Ready>) = compile!(venv paris $p1, $p2);
-            v.abi(&c).unwrap();
+            v.gen_abi(&c).unwrap();
             (c, v)
         }
     };
@@ -193,7 +193,7 @@ macro_rules! abi {
     (venv get paris $p1: literal, $p2: literal) => {
         {
             let (c, v): (Vyper, Venv<Ready>) = compile!(venv paris $p1, $p2);
-            let abi = v.abi_json(&c).unwrap();
+            let abi = v.get_abi(&c).unwrap();
             (c, abi, v)
         }
     };
@@ -208,7 +208,7 @@ macro_rules! abi {
             )+
             let mut cs: Vypers = contracts.into();
             cs.compile_many().await.unwrap();
-            cs.abi_many().await.unwrap();
+            cs.gen_abi_many().await.unwrap();
             cs
         }
     };
@@ -222,7 +222,7 @@ macro_rules! abi {
             )+
             let mut cs: Vypers = contracts.into();
             cs.compile_many().await.unwrap();
-            let abis = cs.abi_json_many().await.unwrap();
+            let abis = cs.get_abi_many().await.unwrap();
             (cs, abis)
         }
     };
@@ -237,7 +237,7 @@ macro_rules! abi {
             let mut cs: Vypers = contracts.into();
             let venv: Venv<Ready> = venv!();
             venv.compile_many(&mut cs).await.unwrap();
-            venv.abi_many(&cs).await.unwrap();
+            venv.gen_abi_many(&cs).await.unwrap();
             (cs, venv)
         }
     };
@@ -252,7 +252,7 @@ macro_rules! abi {
             let mut cs: Vypers = contracts.into();
             let venv: Venv<Ready> = venv!();
             venv.compile_many(&mut cs).await.unwrap();
-            let abi = venv.abi_json_many(&cs).await.unwrap();
+            let abi = venv.get_abi_many(&cs).await.unwrap();
             (cs, abi, venv)
         }
     };
@@ -266,7 +266,7 @@ macro_rules! abi {
             )+
             let mut cs: Vypers = contracts.into();
             cs.compile_many_ver(Evm::Paris).await.unwrap();
-            cs.abi_many().await.unwrap();
+            cs.gen_abi_many().await.unwrap();
             cs
         }
     };
@@ -281,7 +281,7 @@ macro_rules! abi {
             let mut cs: Vypers = contracts.into();
             let venv: Venv<Ready> = venv!();
             venv.compile_many_ver(&mut cs, Evm::Paris).await.unwrap();
-            venv.abi_json_many(&cs).await.unwrap();
+            venv.gen_abi_many(&cs).await.unwrap();
             (cs, venv)
         }
     };
@@ -295,7 +295,7 @@ macro_rules! abi {
             )+
             let mut cs: Vypers = contracts.into();
             cs.compile_many_ver(Evm::Paris).await.unwrap();
-            let abi = cs.abi_json_many().await.unwrap();
+            let abi = cs.get_abi_many().await.unwrap();
             (cs, abi)
         }
     };
@@ -310,7 +310,7 @@ macro_rules! abi {
             let mut cs: Vypers = contracts.into();
             let venv: Venv<Ready> = venv!();
             venv.compile_many_ver(&mut cs, Evm::Paris).await.unwrap();
-            let abi = venv.abi_json_many(&cs).await.unwrap();
+            let abi = venv.get_abi_many(&cs).await.unwrap();
             (cs, abi, venv)
         }
     };
