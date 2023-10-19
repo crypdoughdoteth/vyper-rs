@@ -1,4 +1,10 @@
-/// The vyper macro will take any arbitrary length sequence of two string literals (for the contract path + desired abi path)
+//! The Macro module contains powerful macros used to enhance the developer experience. Some of
+//! these macros are structural in the sense that they construct essential types. The
+//! vyper!, vypers!, and venv! macros fall into this category. Furthermore, there are
+//! macros such as compile! and abi! that make common tasks simple. Both compile! and abi! have
+//! numerous match arms and some shared keywords. 
+
+/// The vyper macro will take an arbitrary length sequence containing two string literals (for the contract path + desired abi path)
 /// The macro will parse the strings into a PathBuf and then into a Vyper struct. If there are
 /// multiple pairs of paths, it will parse it into Vec<Vyper> instead.
 #[macro_export]
@@ -34,9 +40,31 @@ macro_rules! vypers{
         }
     };
 }
-
-/// Instantiates the vyper struct using vyper! and compiles the contract too. Accepts two string
-/// literals for the paths of the Vyper struct.
+/// The `compile!` macro is used to compile one more more Vyper contracts.
+///
+/// Input: any length sequence of paired string literals (one for the contract, one for the abi (or desired path)).
+///
+/// Keywords: paris, venv.
+///
+/// paris - compile contract for the Paris version of the EVM. 
+///
+/// venv - compile contract using an instance of the Vyper compiler inside a venv.
+///
+/// These keywords can even be used together! 
+///
+/// Some examples:
+/// ```rust
+///  use vyper_rs::venv::*;
+///  use vyper_rs::vyper::*;
+///  use vyper_rs::*;
+///  use std::path::PathBuf;
+///  async fn try_me() {
+///     let _: (Vypers, Venv<Ready>) = compile!(venv paris "./multisig.vy", "./abi.json", "./multisig.vy", "./abi.json");
+///     let _: (Vyper, Venv<Ready>) = compile!(venv "./multisig.vy", "./abi.json");
+///     let _: Vyper = compile!("./multisig.vy", "./abi.json");
+///     let _: Vyper = compile!(paris "./multisig.vy", "./abi.json");
+///  } 
+///  ```
 #[macro_export]
 macro_rules! compile {
     // classic, simple
@@ -315,7 +343,9 @@ macro_rules! abi {
         }
     };
 }
-
+/// Creates a virtual environment with the latest version of the vyper compiler installed.
+/// Optionally, you can pass the desired version of the Vyper compiler you want to install, i.e
+/// "0.3.10", as a &str.
 #[macro_export]
 macro_rules! venv {
     () => {{
