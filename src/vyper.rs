@@ -1,3 +1,5 @@
+//! This is the main module of the crate. Uses the global installation of Vyper.
+
 use crate::vyper_errors::CompilerError;
 use anyhow::{bail, Result};
 use itertools::izip;
@@ -13,7 +15,8 @@ use std::{
     sync::Arc,
 };
 
-/// Represents important information about a Vyper contract
+/// Represents important information about a Vyper contract. ABI doesn't need to point to an
+/// existing file since it can just be generated using `gen_abi()`. If the ABI already exists at the given path, you can use serde_json to retrieve it from a file.
 #[derive(
     Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Default, Serialize, Deserialize,
 )]

@@ -1,6 +1,6 @@
 //! This is the documentation for the Vyper-rs crate.
 //! Vyper-rs is a library to interact with the vyper compiler and manage versions with a venv.
-//! Our goal is to connect Vyper with the robust tooling and infrastructure for the Solidity ecosystem written in Rust.
+//! Our goal is to connect Vyper with the robust tooling and infrastructure for the Solidity ecosystem written in Rust and become the standard compiler interface.
 pub mod macros;
 pub mod utils;
 pub mod venv;

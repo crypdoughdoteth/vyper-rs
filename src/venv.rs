@@ -1,3 +1,18 @@
+//! Manages versions of the vyper compiler with a venv or globally.
+//! This state machine represents all valid states for the venv and vyper compiler.
+//! While this works with and without a venv, it is strongly recommended to use a venv.
+//! Creating a venv with this program is simple, just call `new()` to construct the type and
+//! `init()` to create the venv (if not already created). If you called init(), then you can call
+//! the installation method ivyper_venv(). There is an optional argument that takes in the desired
+//! compiler version. You may call try_ready() if the compiler is already installed in your venv.
+//! Otherwise, this step be skipped with the skip() method in order to install vyper globally or use a preexisting installation.
+//! The accompanying installation method is called ivyper_pip() and try_ready() is also available in this namespace.
+//! Both of these methods under Venv<Skip> return a Complete state. When this is reached, you may know with certainty
+//! that a version of Vyper is installed globally with pip and you can safely use the methods in
+//! the Vyper module. Likewise, when the state is Venv<Ready>, you
+//! may use the namespace to access methods for use inside the venv. Methods inside the Venv<Ready>
+//! namespace are mostly equivalent to the ones in the Vyper module, thus you can rely on the
+//! documentation for these methods inside the Venv module.
 use crate::vyper::{Evm, Vyper, Vypers};
 use anyhow::bail;
 use serde_json::{to_writer_pretty, Value};
@@ -23,23 +38,6 @@ pub struct Ready;
 /// Vyper was successfully installed globally or already exists.
 #[derive(Clone, Copy, Eq, PartialEq, Debug)]
 pub struct Complete;
-///  
-/// Manages versions of the vyper compiler with a venv or globally.
-/// This state machine represents all valid states for the venv and vyper compiler.
-/// While this works with and without a venv, it is strongly recommended to use a venv.
-/// Creating a venv with this program is simple, just call `new()` to construct the type and
-/// `init()` to create the venv (if not already created). If you called init(), then you can call
-/// the installation method ivyper_venv(). There is an optional argument that takes in the desired
-/// compiler version. You may call try_ready() if the compiler is already installed in your venv.
-/// Otherwise, this step be skipped with the skip() method in order to install vyper globally or use a preexisting installation.
-/// The accompanying installation method is called ivyper_pip() and try_ready() is also available in this namespace.
-/// Both of these methods under Venv<Skip> return a Complete state. When this is reached, you may know with certainty
-/// that a version of Vyper is installed globally with pip and you can safely use the methods in
-/// the Vyper module. Likewise, when the state is Venv<Ready>, you
-/// may use the namespace to access methods for use inside the venv. Methods inside the Venv<Ready>
-/// namespace are mostly equivalent to the ones in the Vyper module, thus you can rely on the
-/// documentation for these methods inside the Venv module.
-///   
 //  States:
 //
 //      NotInitialized:
@@ -81,6 +79,11 @@ pub struct Complete;
 //             abi_json
 //
 //     Complete
+
+/// Venv is the primary namespace of the module. Its methods are split between various states
+/// represented by individual structs. The main documentation for the module is here. Functions
+/// accessible under the Ready state are documented under the Vyper module with the same naming
+/// conventions.
 #[derive(Clone, Copy, Eq, PartialEq, Debug)]
 pub struct Venv<State = NotInitialized> {
     state: std::marker::PhantomData<State>,
@@ -676,17 +679,14 @@ impl Venv<Ready> {
         Ok(())
     }
 
-    pub async fn compile_many(
-        &self,
-        contracts: &mut Vypers,
-    ) -> Result<(), Box<dyn Error>> {
+    pub async fn compile_many(&self, contracts: &mut Vypers) -> anyhow::Result<()> {
         let path = Arc::new(contracts.path_to_code.clone());
         let mut out_vec: Vec<String> = Vec::with_capacity(contracts.path_to_code.len());
         let mut threads = vec![];
-        for i in 0..contracts.path_to_code.len() {
-            let paths = Arc::clone(&path);
-            let cthread = tokio::spawn(async move {
-                if cfg!(target_os = "windows") {
+        if cfg!(target_os = "windows") {
+            for i in 0..contracts.path_to_code.len() {
+                let paths = Arc::clone(&path);
+                let cthread = tokio::spawn(async move {
                     let compiler_output = Command::new("./venv/scripts/vyper")
                         .arg(&paths[i])
                         .output()?;
@@ -697,7 +697,13 @@ impl Venv<Ready> {
                     } else {
                         bail!(String::from_utf8_lossy(&compiler_output.stderr).to_string())
                     }
-                } else {
+                });
+                threads.push(cthread);
+            }
+        } else {
+            for i in 0..contracts.path_to_code.len() {
+                let paths = Arc::clone(&path);
+                let cthread = tokio::spawn(async move {
                     let compiler_output =
                         Command::new("./venv/bin/vyper").arg(&paths[i]).output()?;
                     if compiler_output.status.success() {
@@ -707,9 +713,9 @@ impl Venv<Ready> {
                     } else {
                         bail!(String::from_utf8_lossy(&compiler_output.stderr).to_string())
                     }
-                }
-            });
-            threads.push(cthread);
+                });
+                threads.push(cthread);
+            }
         }
         for child_thread in threads {
             let x = child_thread.await.unwrap()?;
@@ -727,11 +733,12 @@ impl Venv<Ready> {
         let path = Arc::new(contracts.path_to_code.clone());
         let mut out_vec: Vec<String> = Vec::with_capacity(contracts.path_to_code.len());
         let mut threads = vec![];
-        for i in 0..contracts.path_to_code.len() {
-            let cver = ver.clone().to_string();
-            let paths = Arc::clone(&path);
-            let cthread = tokio::spawn(async move {
-                if cfg!(target_os = "windows") {
+        if cfg!(target_os = "windows") {
+            for i in 0..contracts.path_to_code.len() {
+                let cver = ver.clone().to_string();
+                let paths = Arc::clone(&path);
+
+                let cthread = tokio::spawn(async move {
                     let compiler_output = Command::new("./venv/scripts/vyper")
                         .arg(&paths[i])
                         .arg("--evm-version")
@@ -744,7 +751,15 @@ impl Venv<Ready> {
                     } else {
                         bail!(String::from_utf8_lossy(&compiler_output.stderr).to_string())
                     }
-                } else {
+                });
+                threads.push(cthread);
+            }
+        } else {
+            for i in 0..contracts.path_to_code.len() {
+                let cver = ver.clone().to_string();
+                let paths = Arc::clone(&path);
+
+                let cthread = tokio::spawn(async move {
                     let compiler_output = Command::new("./venv/bin/vyper")
                         .arg(&paths[i])
                         .arg("--evm-version")
@@ -757,9 +772,9 @@ impl Venv<Ready> {
                     } else {
                         bail!(String::from_utf8_lossy(&compiler_output.stderr).to_string())
                     }
-                }
-            });
-            threads.push(cthread);
+                });
+                threads.push(cthread);
+            }
         }
         for child_thread in threads {
             let x = child_thread.await.unwrap()?;
@@ -772,11 +787,11 @@ impl Venv<Ready> {
         let c_path = Arc::new(contracts.path_to_code.clone());
         let abi_path = Arc::new(contracts.abi.clone());
         let mut threads = vec![];
-        for i in 0..contracts.path_to_code.len() {
-            let c = Arc::clone(&c_path);
-            let abi = Arc::clone(&abi_path);
-            let cthread = tokio::spawn(async move {
-                if cfg!(target_os = "windows") {
+        if cfg!(target_os = "windows") {
+            for i in 0..contracts.path_to_code.len() {
+                let c = Arc::clone(&c_path);
+                let abi = Arc::clone(&abi_path);
+                let cthread = tokio::spawn(async move {
                     let compiler_output = Command::new("./venv/scripts/vyper")
                         .arg("-f")
                         .arg("abi")
@@ -792,7 +807,14 @@ impl Venv<Ready> {
                         bail!(String::from_utf8_lossy(&compiler_output.stderr).to_string())
                     }
                     Ok(())
-                } else {
+                });
+                threads.push(cthread);
+            }
+        } else {
+            for i in 0..contracts.path_to_code.len() {
+                let c = Arc::clone(&c_path);
+                let abi = Arc::clone(&abi_path);
+                let cthread = tokio::spawn(async move {
                     let compiler_output = Command::new("./venv/bin/vyper")
                         .arg("-f")
                         .arg("abi")
@@ -808,9 +830,9 @@ impl Venv<Ready> {
                         bail!(String::from_utf8_lossy(&compiler_output.stderr).to_string())
                     }
                     Ok(())
-                }
-            });
-            threads.push(cthread);
+                });
+                threads.push(cthread);
+            }
         }
         for child_thread in threads {
             child_thread.await.unwrap()?
@@ -824,10 +846,10 @@ impl Venv<Ready> {
     ) -> Result<Vec<Value>, Box<dyn Error>> {
         let c_path = Arc::new(contracts.path_to_code.clone());
         let mut threads = vec![];
-        for i in 0..contracts.path_to_code.len() {
-            let c = Arc::clone(&c_path);
-            let cthread = tokio::spawn(async move {
-                if cfg!(target_os = "windows") {
+        if cfg!(target_os = "windows") {
+            for i in 0..contracts.path_to_code.len() {
+                let c = Arc::clone(&c_path);
+                let cthread = tokio::spawn(async move {
                     let compiler_output = Command::new("./venv/scripts/vyper")
                         .arg("-f")
                         .arg("abi")
@@ -841,7 +863,13 @@ impl Venv<Ready> {
                     } else {
                         bail!(String::from_utf8_lossy(&compiler_output.stderr).to_string())
                     }
-                } else {
+                });
+                threads.push(cthread);
+            }
+        } else {
+            for i in 0..contracts.path_to_code.len() {
+                let c = Arc::clone(&c_path);
+                let cthread = tokio::spawn(async move {
                     let compiler_output = Command::new("./venv/bin/vyper")
                         .arg("-f")
                         .arg("abi")
@@ -855,11 +883,10 @@ impl Venv<Ready> {
                     } else {
                         bail!(String::from_utf8_lossy(&compiler_output.stderr).to_string())
                     }
-                }
-            });
-            threads.push(cthread);
+                });
+                threads.push(cthread);
+            }
         }
-
         let mut res_vec = Vec::new();
         for child_thread in threads {
             res_vec.push(child_thread.await??);

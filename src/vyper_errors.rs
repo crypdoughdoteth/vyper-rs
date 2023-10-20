@@ -1,3 +1,5 @@
+//! This module contains the main error type returned when there's some issue with the compiler in
+//! the Vyper module.
 use std::{error::Error, fmt::Display};
 
 #[derive(Debug)]

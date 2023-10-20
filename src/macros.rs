@@ -2,11 +2,22 @@
 //! these macros are structural in the sense that they construct essential types. The
 //! vyper!, vypers!, and venv! macros fall into this category. Furthermore, there are
 //! macros such as compile! and abi! that make common tasks simple. Both compile! and abi! have
-//! numerous match arms and some shared keywords. 
+//! numerous match arms and some shared keywords.
 
-/// The vyper macro will take an arbitrary length sequence containing two string literals (for the contract path + desired abi path)
-/// The macro will parse the strings into a PathBuf and then into a Vyper struct. If there are
-/// multiple pairs of paths, it will parse it into Vec<Vyper> instead.
+/// The `vyper!` macro is used to construct the Vyper type without the boilerplate. If there is
+/// more than one pair of literals passed into the macro, the macro will return a Vec<Vyper>.
+///
+/// Input: any length sequence of paired string literals (one for the contract, one for the abi (or desired path)).
+///
+/// ```rust
+///  use vyper_rs::vyper::*;
+///  use vyper_rs::*;
+///  use std::path::PathBuf;
+///  fn try_me() {
+///     let _: Vyper = vyper!("./multisig.vy", "./abi.json");
+///     let _: Vec<Vyper> = vyper!("./multisig.vy", "./abi.json", "./multisig.vy", "./abi.json");
+///  }
+///  ```
 #[macro_export]
 macro_rules! vyper {
     ($p1: literal, $p2: literal) => {
@@ -24,8 +35,18 @@ macro_rules! vyper {
     };
 }
 
-/// The vyper macro will take any arbitrary length sequence of two string literals (for the contract path + desired abi path)
-/// The macro will call the vyper macro and push each newly constructed Vyper type to a Vector. From there, the Vector is type casted into the Vypers type and returned.
+/// The `vypers!` macro is used to construct the Vypers type without the boilerplate.
+///
+/// Input: any length sequence of paired string literals (one for the contract, one for the abi (or desired path)).
+///
+/// ```rust
+///  use vyper_rs::vyper::*;
+///  use vyper_rs::*;
+///  use std::path::PathBuf;
+///  fn try_me() {
+///     let _: Vypers = vypers!("./multisig.vy", "./abi.json", "./multisig.vy", "./abi.json");
+///  }
+///  ```
 #[macro_export]
 macro_rules! vypers{
     ($($p1: literal, $p2: literal),+) => {
@@ -46,13 +67,12 @@ macro_rules! vypers{
 ///
 /// Keywords: paris, venv.
 ///
-/// paris - compile contract for the Paris version of the EVM. 
+/// paris - compile contract for the Paris version of the EVM.
 ///
 /// venv - compile contract using an instance of the Vyper compiler inside a venv.
 ///
-/// These keywords can even be used together! 
+/// These keywords can even be used together!
 ///
-/// Some examples:
 /// ```rust
 ///  use vyper_rs::venv::*;
 ///  use vyper_rs::vyper::*;
@@ -63,7 +83,7 @@ macro_rules! vypers{
 ///     let _: (Vyper, Venv<Ready>) = compile!(venv "./multisig.vy", "./abi.json");
 ///     let _: Vyper = compile!("./multisig.vy", "./abi.json");
 ///     let _: Vyper = compile!(paris "./multisig.vy", "./abi.json");
-///  } 
+///  }
 ///  ```
 #[macro_export]
 macro_rules! compile {
@@ -157,8 +177,35 @@ macro_rules! compile {
     };
 }
 
-/// Instanitates the vyper struct and compiles the contract using compile! and generates an
-/// abi file. Accepts two string literals for the paths of the Vyper struct.
+/// The `abi!` macro is used to compile one more more Vyper contracts and get or generate the ABI.
+///
+/// Input: any length sequence of paired string literals (one for the contract, one for the abi (or desired path)).
+///
+/// Keywords: paris, venv, get.
+///
+/// paris - compile contract for the Paris version of the EVM.
+///
+/// venv - compile contract using an instance of the Vyper compiler inside a venv.
+///
+/// get - instead of generating the ABI as a file, return it as JSON.
+///
+/// These keywords can be combined with one another just like with `compile!`.
+/// ```rust
+///  use vyper_rs::venv::*;
+///  use vyper_rs::vyper::*;
+///  use vyper_rs::*;
+///  use std::path::PathBuf;
+///  use serde_json::Value;
+/// async fn try_me() {
+///     let _: Vyper = abi!("./multisig.vy", "./abi.json");
+///     let _: (Vyper, Value) = abi!(get "./multisig.vy", "./abi.json");
+///     let _: (Vyper, Venv<Ready>) = abi!(venv "./multisig.vy", "./abi.json");
+///     let _: (Vyper, Value, Venv<Ready>) = abi!(venv get "./multisig.vy", "./abi.json");
+///     let _: (Vyper, Value, Venv<Ready>) = abi!(venv get paris "./multisig.vy", "./abi.json");
+///     let _: Vypers = abi!("./multisig.vy", "./abi.json", "./multisig.vy", "./abi.json");   
+///     let _: (Vypers, Vec<Value>, Venv<Ready>) =  abi!(venv get "./multisig.vy", "./abi.json", "./multisig.vy", "./abi.json");
+/// }
+/// ```
 #[macro_export]
 macro_rules! abi {
     // OG matcher
@@ -343,9 +390,19 @@ macro_rules! abi {
         }
     };
 }
-/// Creates a virtual environment with the latest version of the vyper compiler installed.
+/// The `venv!` macro creates a virtual environment with the latest version of the vyper compiler installed.
 /// Optionally, you can pass the desired version of the Vyper compiler you want to install, i.e
 /// "0.3.10", as a &str.
+///```rust
+///
+/// use vyper_rs::venv::*;
+/// use vyper_rs::*;
+/// fn try_me() {
+///     let _: Venv<Ready> = venv!();
+///     let _: Venv<Ready> = venv!("0.3.10");
+/// }
+///
+///```
 #[macro_export]
 macro_rules! venv {
     () => {{
