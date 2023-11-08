@@ -480,12 +480,12 @@ impl From<Vypers> for Vec<Vyper> {
     }
 }
 
-impl Into<Vypers> for Vec<Vyper> {
-    fn into(self) -> Vypers {
+impl From<Vec<Vyper>> for Vypers {
+    fn from(value: Vec<Vyper>) -> Vypers {
         let mut paths = vec![];
         let mut bytes: Vec<String> = vec![];
         let mut abis = vec![];
-        self.into_iter().for_each(|x| {
+        value.into_iter().for_each(|x| {
             paths.push(x.path_to_code);
             abis.push(x.abi);
             if let Some(b) = x.bytecode {

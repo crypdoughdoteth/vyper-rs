@@ -16,7 +16,7 @@ pub async fn deploy() -> Result<(), Box<dyn Error>> {
     let abi: PathBuf = PathBuf::from("./my_abi.json");
     let mut contract = Vyper::new(cpath, abi);
     contract.compile()?;
-    contract.abi()?;
+    contract.gen_abi()?;
     let anvil = Anvil::new().spawn();
 
     let wallet: LocalWallet = anvil.keys()[0].clone().into();

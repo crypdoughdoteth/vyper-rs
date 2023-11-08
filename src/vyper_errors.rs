@@ -19,8 +19,4 @@ impl Display for CompilerError {
     }
 }
 
-impl Error for CompilerError {
-    fn source(&self) -> Option<&(dyn Error + 'static)> {
-        Some(Err(&self.source).unwrap())
-    }
-}
+impl Error for CompilerError {}
