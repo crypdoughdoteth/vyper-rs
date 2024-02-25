@@ -1,6 +1,16 @@
 //! Utilities offered by the crate.
 
+use std::{
+    // error::Error,
+    env,
+    fs::{self, read_dir, File, ReadDir},
+    io::Error,
+    path::{Path, PathBuf},
+    sync::Arc,
+};
+
 use anyhow::{bail, Result};
+use tokio::task::JoinHandle;
 
 /// Parses the ERC-5202 bytecode container format for indexing blueprint contracts.
 ///
@@ -54,4 +64,37 @@ pub fn parse_blueprint(bytecode: &[u8]) -> Result<(u8, Option<Vec<u8>>, Vec<u8>)
         }
         false => Ok((erc_version, preamble_data, initcode)),
     }
+}
+
+pub async fn scan_workspace(root: PathBuf) -> Result<Vec<PathBuf>, Error> {
+    let cwd = root.clone();
+    let h1 = tokio::spawn(async move { get_contracts_in_dir(cwd) });
+    let hh_ape = root.join("/contracts");
+    let h2 = tokio::spawn(async move { get_contracts_in_dir(hh_ape) });
+    let foundry = root.join("/src");
+    let h3 = tokio::spawn(async move { get_contracts_in_dir(foundry) });
+    let mut res = Vec::new();
+    for i in [h1, h2, h3].into_iter() {
+        let result = match i.await {
+            Ok(Ok(x)) => x,
+            _ => Vec::new(),
+        };
+        res.push(result)
+    }
+    Ok(res.into_iter().flatten().collect::<Vec<PathBuf>>())
+}
+
+pub fn get_contracts_in_dir(dir: PathBuf) -> Result<Vec<PathBuf>, Error> {
+    let files = read_dir(dir)?;
+    let contracts = files.into_iter().try_fold(
+        Vec::new(),
+        |mut acc, x| -> Result<Vec<PathBuf>, Error> {
+            let file = x?;
+            if file.path().ends_with(".vy") {
+                acc.push(file.path())
+            }
+            Ok(acc)
+        },
+    )?;
+    Ok(contracts)
 }

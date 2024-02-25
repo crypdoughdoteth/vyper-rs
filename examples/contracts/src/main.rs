@@ -1,9 +1,9 @@
 use std::error::Error;
 
 use ethers::prelude::abigen;
-mod venv; 
-mod deploy; 
-mod compile; 
+mod compile;
+mod deploy;
+mod venv;
 
 fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
@@ -11,8 +11,10 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 #[cfg(test)]
 mod tests {
-    use super::*; 
-    use crate::{deploy::deploy, compile::compile_and_generate_bindings, venv::venv_example};
+    use super::*;
+    use crate::{
+        compile::compile_and_generate_bindings, deploy::deploy, venv::venv_example,
+    };
     #[test]
     fn d() {
         tokio_test::block_on(async {

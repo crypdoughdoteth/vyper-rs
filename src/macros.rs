@@ -410,7 +410,7 @@ macro_rules! venv {
     }};
     ($ver: literal) => {{
         let version: &str = $ver;
-        Venv::new()
+        Venv::default()
             .init()
             .unwrap()
             .ivyper_venv(Some(version))
