@@ -16,8 +16,7 @@ use vyper_rs::vyper::Vyper;
 
 pub async fn deploy() -> Result<(), Box<dyn Error>> {
     let cpath: PathBuf = PathBuf::from("../../multisig.vy");
-    let abi: PathBuf = PathBuf::from("./my_abi.json");
-    let mut contract = Vyper::new(cpath, abi);
+    let mut contract = Vyper::new(&cpath);
     contract.compile()?;
     contract.gen_abi()?;
     let anvil = Anvil::new().spawn();

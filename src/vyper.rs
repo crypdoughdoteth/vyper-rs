@@ -2,13 +2,12 @@
 
 use crate::{
     utils::{self, get_contracts_in_dir},
-    vyper_errors::CompilerError,
+    vyper_errors::VyperErrors,
 };
-use anyhow::{bail, Result};
 use serde::{Deserialize, Serialize};
 use serde_json::{to_writer_pretty, Value};
 use std::{
-    error::Error,
+    borrow::BorrowMut,
     fmt::Display,
     fs::File,
     io::{BufWriter, Write},
@@ -17,6 +16,7 @@ use std::{
     sync::Arc,
     thread,
 };
+use tokio::task::JoinHandle;
 
 /// Represents important information about a Vyper contract. ABI doesn't need to point to an
 /// existing file since it can just be generated using `gen_abi()`. If the ABI already exists at the given path, you can use serde_json to retrieve it from a file.
@@ -41,12 +41,11 @@ impl<'a> Display for Vyper<'a> {
 impl<'a> Vyper<'a> {
     /// Constructor function that takes in the path to your vyper contract and the _desired path/{name}.json_ for your ABI  
     pub fn new(path: &'a Path) -> Self {
-        let abi = path.with_extension(".json");
-
+        let np = path.with_extension("json"); 
         Self {
             path_to_code: path,
             bytecode: None,
-            abi,
+            abi: np,
             venv: None,
         }
     }
@@ -61,7 +60,7 @@ impl<'a> Vyper<'a> {
     }
 
     pub fn with_venv(path: &'a Path, venv: &'a Path) -> Vyper<'a> {
-        let abi = path.with_extension(".json");
+        let abi = path.with_extension("json");
 
         Vyper {
             path_to_code: path,
@@ -80,12 +79,24 @@ impl<'a> Vyper<'a> {
         }
     }
 
+    pub fn abi_mut(&mut self) -> &mut PathBuf {
+        self.abi.borrow_mut()
+    }
+
+    pub fn abi_exists(&self) -> bool {
+        self.abi.exists()
+    }
+
+    pub fn contract_exists(&self) -> bool {
+        self.path_to_code.exists()
+    }
+
     pub fn get_vyper(&self) -> String {
         if let Some(venv) = self.venv {
             if cfg!(target_os = "windows") {
-                format!("{}/scripts/vyper", venv.to_string_lossy().to_string())
+                format!("{}/scripts/vyper", venv.to_string_lossy())
             } else {
-                format!("{}/bin/vyper", venv.to_string_lossy().to_string())
+                format!("{}/bin/vyper", venv.to_string_lossy())
             }
         } else {
             "vyper".to_owned()
@@ -95,9 +106,9 @@ impl<'a> Vyper<'a> {
     pub fn get_pip(&self) -> String {
         if let Some(venv) = self.venv {
             if cfg!(target_os = "windows") {
-                format!("{}/scripts/pip3", venv.to_string_lossy().to_string())
+                format!("{}/scripts/pip3", venv.to_string_lossy())
             } else {
-                format!("{}/bin/pip3", venv.to_string_lossy().to_string())
+                format!("{}/bin/pip3", venv.to_string_lossy())
             }
         } else {
             "pip3".to_owned()
@@ -109,20 +120,20 @@ impl<'a> Vyper<'a> {
     }
 
     /// check the version of the vyper compiler
-    pub fn get_version(&self) -> Result<String, Box<dyn Error>> {
+    pub fn get_version(&self) -> Result<String, VyperErrors> {
         let out = Command::new(self.get_vyper()).arg("--version").output()?;
         if !out.status.success() {
-            return Err(Box::new(CompilerError::new(
+            Err(VyperErrors::CompilerError(
                 "Couldn't locate version info, installation does not exist".to_string(),
-            )));
+            ))?
         }
         Ok(String::from_utf8_lossy(&out.stdout).to_string())
     }
 
     /// Compiles a vyper contract by invoking the vyper compiler, updates the ABI field in the Vyper struct
-    pub fn compile(&mut self) -> Result<(), Box<dyn Error + Send + Sync>> {
+    pub fn compile(&mut self) -> Result<(), VyperErrors> {
         let compiler_output = Command::new(self.get_vyper())
-            .arg(&self.path_to_code)
+            .arg(self.path_to_code)
             .output()?;
         if compiler_output.status.success() {
             let mut out = String::from_utf8_lossy(&compiler_output.stdout).to_string();
@@ -132,33 +143,33 @@ impl<'a> Vyper<'a> {
             self.bytecode = Some(out);
             Ok(())
         } else {
-            Err(Box::new(CompilerError::new(
+            Err(VyperErrors::CompilerError(
                 String::from_utf8_lossy(&compiler_output.stderr).to_string(),
-            )))?
+            ))?
         }
     }
 
-    pub fn compile_blueprint(&mut self) -> Result<(), Box<dyn Error + Send + Sync>> {
+    pub fn compile_blueprint(&mut self) -> Result<(), VyperErrors> {
         let compiler_output = Command::new(self.get_vyper())
             .arg("-f")
             .arg("blueprint_bytecode")
-            .arg(&self.path_to_code)
+            .arg(self.path_to_code)
             .output()?;
         if compiler_output.status.success() {
             let out = String::from_utf8_lossy(&compiler_output.stdout).to_string();
             self.bytecode = Some(out);
             Ok(())
         } else {
-            Err(Box::new(CompilerError::new(
+            Err(VyperErrors::CompilerError(
                 String::from_utf8_lossy(&compiler_output.stderr).to_string(),
-            )))?
+            ))?
         }
     }
 
     /// Compiles a vyper contract by invoking the vyper compiler, arg for specifying the EVM version to compile to
-    pub fn compile_ver(&mut self, ver: &Evm) -> Result<(), Box<dyn Error + Send + Sync>> {
+    pub fn compile_ver(&mut self, ver: &Evm) -> Result<(), VyperErrors> {
         let compiler_output = Command::new(self.get_vyper())
-            .arg(&self.path_to_code)
+            .arg(self.path_to_code)
             .arg("--evm-version")
             .arg(ver.to_string())
             .output()?;
@@ -172,17 +183,17 @@ impl<'a> Vyper<'a> {
 
             Ok(())
         } else {
-            Err(Box::new(CompilerError::new(
+            Err(VyperErrors::CompilerError(
                 String::from_utf8_lossy(&compiler_output.stderr).to_string(),
-            )))?
+            ))?
         }
     }
     /// Generates the ABI and creates a file @ the abi path specified in the Vyper struct
-    pub fn gen_abi(&self) -> Result<(), Box<dyn Error + Send + Sync>> {
+    pub fn gen_abi(&self) -> Result<(), VyperErrors> {
         let compiler_output = Command::new(self.get_vyper())
             .arg("-f")
             .arg("abi")
-            .arg(&self.abi)
+            .arg(&self.path_to_code)
             .output()?;
 
         if compiler_output.status.success() {
@@ -190,25 +201,23 @@ impl<'a> Vyper<'a> {
                 &compiler_output.stdout,
             ))?;
 
-            let abi_path = self.path_to_code.with_extension(".json");
-
-            let file = File::create(abi_path)?;
+            let file = File::create(&self.abi)?;
 
             to_writer_pretty(file, &json)?;
             Ok(())
         } else {
-            Err(Box::new(CompilerError::new(
+            Err(VyperErrors::CompilerError(
                 String::from_utf8_lossy(&compiler_output.stderr).to_string(),
-            )))?
+            ))?
         }
     }
 
     /// Generates the ABI and creates a file @ the abi path specified in the Vyper struct
-    pub fn get_abi(&self) -> Result<Value, Box<dyn Error + Send + Sync>> {
+    pub fn get_abi(&self) -> Result<Value, VyperErrors> {
         let compiler_output = Command::new(self.get_vyper())
             .arg("-f")
             .arg("abi")
-            .arg(&self.abi)
+            .arg(&self.path_to_code)
             .output()?;
 
         if compiler_output.status.success() {
@@ -217,14 +226,14 @@ impl<'a> Vyper<'a> {
             ))?;
             Ok(json)
         } else {
-            Err(Box::new(CompilerError::new(
+            Err(VyperErrors::CompilerError(
                 String::from_utf8_lossy(&compiler_output.stderr).to_string(),
-            )))?
+            ))?
         }
     }
 
     /// Storage layout as JSON, saves it to a file
-    pub fn storage_layout(&self) -> Result<(), Box<dyn Error + Send + Sync>> {
+    pub fn storage_layout(&self) -> Result<(), VyperErrors> {
         let compiler_output = Command::new(self.get_vyper())
             .arg("-f")
             .arg("layout")
@@ -239,13 +248,13 @@ impl<'a> Vyper<'a> {
             to_writer_pretty(file, &json)?;
             Ok(())
         } else {
-            Err(Box::new(CompilerError::new(
+            Err(VyperErrors::CompilerError(
                 String::from_utf8_lossy(&compiler_output.stderr).to_string(),
-            )))?
+            ))?
         }
     }
     /// AST of your contract as JSON, saves it to a file
-    pub fn ast(&self) -> Result<(), Box<dyn Error + Send + Sync>> {
+    pub fn ast(&self) -> Result<(), VyperErrors> {
         let compiler_output = Command::new(self.get_vyper())
             .arg("-f")
             .arg("ast")
@@ -260,13 +269,13 @@ impl<'a> Vyper<'a> {
             to_writer_pretty(file, &json)?;
             Ok(())
         } else {
-            Err(Box::new(CompilerError::new(
+            Err(VyperErrors::CompilerError(
                 String::from_utf8_lossy(&compiler_output.stderr).to_string(),
-            )))?
+            ))?
         }
     }
     /// Generates an external interface for your vyper contract to be called with
-    pub fn interface(&self) -> Result<(), Box<dyn Error + Send + Sync>> {
+    pub fn interface(&self) -> Result<(), VyperErrors> {
         let compiler_output = Command::new(self.get_vyper())
             .arg("-f")
             .arg("external_interface")
@@ -277,13 +286,13 @@ impl<'a> Vyper<'a> {
             buffer.write_all(&compiler_output.stdout)?;
             Ok(())
         } else {
-            Err(Box::new(CompilerError::new(
+            Err(VyperErrors::CompilerError(
                 String::from_utf8_lossy(&compiler_output.stderr).to_string(),
-            )))?
+            ))?
         }
     }
     /// Generates the opcodes produced by your vyper contract, saves it as a text file
-    pub fn opcodes(&self) -> Result<(), Box<dyn Error + Send + Sync>> {
+    pub fn opcodes(&self) -> Result<(), VyperErrors> {
         let compiler_output = Command::new(self.get_vyper())
             .arg("-f")
             .arg("opcodes")
@@ -295,13 +304,13 @@ impl<'a> Vyper<'a> {
             buffer.write_all(&compiler_output.stdout)?;
             Ok(())
         } else {
-            Err(Box::new(CompilerError::new(
+            Err(VyperErrors::CompilerError(
                 String::from_utf8_lossy(&compiler_output.stderr).to_string(),
-            )))?
+            ))?
         }
     }
     /// Generates the opcodes produced by your vyper contract at runtime, saves it as a text file
-    pub fn opcodes_runtime(&self) -> Result<(), Box<dyn Error + Send + Sync>> {
+    pub fn opcodes_runtime(&self) -> Result<(), VyperErrors> {
         let compiler_output = Command::new(self.get_vyper())
             .arg("-f")
             .arg("opcodes_runtime")
@@ -313,13 +322,13 @@ impl<'a> Vyper<'a> {
             buffer.write_all(&compiler_output.stdout)?;
             Ok(())
         } else {
-            Err(Box::new(CompilerError::new(
+            Err(VyperErrors::CompilerError(
                 String::from_utf8_lossy(&compiler_output.stderr).to_string(),
-            )))?
+            ))?
         }
     }
     /// Natspec user documentation for vyper contract
-    pub fn userdoc(&self) -> Result<(), Box<dyn Error + Send + Sync>> {
+    pub fn userdoc(&self) -> Result<(), VyperErrors> {
         let compiler_output = Command::new(self.get_vyper())
             .arg("-f")
             .arg("userdoc")
@@ -330,13 +339,13 @@ impl<'a> Vyper<'a> {
             buffer.write_all(&compiler_output.stdout)?;
             Ok(())
         } else {
-            Err(Box::new(CompilerError::new(
+            Err(VyperErrors::CompilerError(
                 String::from_utf8_lossy(&compiler_output.stderr).to_string(),
-            )))?
+            ))?
         }
     }
     /// Natspec dev documentation for vyper contract
-    pub fn devdoc(&self) -> Result<(), Box<dyn Error + Send + Sync>> {
+    pub fn devdoc(&self) -> Result<(), VyperErrors> {
         let compiler_output = Command::new(self.get_vyper())
             .arg("-f")
             .arg("devdoc")
@@ -347,9 +356,9 @@ impl<'a> Vyper<'a> {
             buffer.write_all(&compiler_output.stdout)?;
             Ok(())
         } else {
-            Err(Box::new(CompilerError::new(
+            Err(VyperErrors::CompilerError(
                 String::from_utf8_lossy(&compiler_output.stderr).to_string(),
-            )))?
+            ))?
         }
     }
 }
@@ -360,12 +369,10 @@ impl<'a> Vyper<'a> {
 pub struct VyperStack<'a>(pub &'a mut [Vyper<'a>]);
 
 impl<'a> VyperStack<'a> {
-    pub fn compile_many(
-        &mut self,
-    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    pub fn compile_many(&mut self) -> Result<(), VyperErrors> {
         thread::scope(|s| {
             for i in self.0.iter_mut() {
-                s.spawn(|| -> Result<(), Box<dyn Error + Send + Sync>> {
+                s.spawn(|| -> Result<(), VyperErrors> {
                     i.compile()?;
                     Ok(())
                 });
@@ -375,14 +382,11 @@ impl<'a> VyperStack<'a> {
         Ok(())
     }
 
-    pub fn compile_many_ver(
-        &mut self,
-        evm_version: &Evm,
-    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    pub fn compile_many_ver(&mut self, evm_version: &Evm) -> Result<(), VyperErrors> {
         thread::scope(|s| {
             for i in self.0.iter_mut() {
-                s.spawn(|| -> Result<(), Box<dyn Error + Send + Sync>> {
-                    i.compile_ver(&evm_version)?;
+                s.spawn(|| -> Result<(), VyperErrors> {
+                    i.compile_ver(evm_version)?;
                     Ok(())
                 });
             }
@@ -391,10 +395,10 @@ impl<'a> VyperStack<'a> {
         Ok(())
     }
 
-    pub fn gen_abi_many(&self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    pub fn gen_abi_many(&self) -> Result<(), VyperErrors> {
         thread::scope(|s| {
             for i in self.0.iter() {
-                s.spawn(|| -> Result<(), Box<dyn Error + Send + Sync>> {
+                s.spawn(|| -> Result<(), VyperErrors> {
                     i.gen_abi()?;
                     Ok(())
                 });
@@ -436,12 +440,10 @@ impl Vypers {
     }
 
     pub fn new(paths: Vec<PathBuf>) -> Self {
-        let abis = paths.iter().map(|e| e.with_extension(".json")).collect();
-
         Self {
-            path_to_code: paths,
+            path_to_code: paths.clone(),
             bytecode: None,
-            abi: abis,
+            abi: paths.iter().map(|e| e.with_extension("json")).collect(),
             venv: None,
         }
     }
@@ -463,7 +465,7 @@ impl Vypers {
     }
 
     pub fn with_venv(paths: Vec<PathBuf>, venv: &Path) -> Self {
-        let abis = paths.iter().map(|e| e.with_extension(".json")).collect();
+        let abis = paths.iter().map(|e| e.with_extension("json")).collect();
 
         Self {
             path_to_code: paths,
@@ -480,9 +482,9 @@ impl Vypers {
     pub fn get_vyper(&self) -> String {
         if let Some(venv) = &self.venv {
             if cfg!(target_os = "windows") {
-                format!("{}/scripts/vyper", venv.to_string_lossy().to_string())
+                format!("{}/scripts/vyper", venv.to_string_lossy())
             } else {
-                format!("{}/bin/vyper", venv.to_string_lossy().to_string())
+                format!("{}/bin/vyper", venv.to_string_lossy())
             }
         } else {
             "vyper".to_owned()
@@ -492,9 +494,9 @@ impl Vypers {
     pub fn get_pip(&self) -> String {
         if let Some(venv) = &self.venv {
             if cfg!(target_os = "windows") {
-                format!("{}/scripts/pip3", venv.to_string_lossy().to_string())
+                format!("{}/scripts/pip3", venv.to_string_lossy())
             } else {
-                format!("{}/bin/pip3", venv.to_string_lossy().to_string())
+                format!("{}/bin/pip3", venv.to_string_lossy())
             }
         } else {
             "pip3".to_owned()
@@ -502,10 +504,10 @@ impl Vypers {
     }
 
     /// Compile multiple vyper contracts concurrently on new threads, updates the ABI field in Vypers
-    pub async fn compile_many(&mut self) -> Result<(), Box<dyn Error + Send + Sync>> {
+    pub async fn compile_many(&mut self) -> Result<(), VyperErrors> {
         let path = Arc::new(self.path_to_code.clone());
         let mut out_vec: Vec<String> = Vec::with_capacity(self.path_to_code.len());
-        let mut threads = vec![];
+        let mut threads: Vec<JoinHandle<Result<String, VyperErrors>>> = vec![];
         let vy: Arc<String> = Arc::new(self.get_vyper());
         for i in 0..self.path_to_code.len() {
             let paths = Arc::clone(&path);
@@ -521,13 +523,15 @@ impl Vypers {
                     }
                     Ok(out)
                 } else {
-                    bail!(String::from_utf8_lossy(&compiler_output.stderr).to_string())
+                    Err(VyperErrors::CompilerError(
+                        String::from_utf8_lossy(&compiler_output.stderr).to_string(),
+                    ))?
                 }
             });
             threads.push(cthread);
         }
         for child_thread in threads {
-            let x = child_thread.await.unwrap()?;
+            let x = child_thread.await??;
             out_vec.push(x);
         }
         self.bytecode = Some(out_vec);
@@ -538,12 +542,12 @@ impl Vypers {
     pub async fn compile_many_ver(
         &mut self,
         ver: Evm,
-    ) -> Result<(), Box<dyn Error + Send + Sync>> {
+    ) -> Result<(), VyperErrors> {
         let path = Arc::new(self.path_to_code.clone());
         let vy = Arc::new(self.get_vyper());
         let mut out_vec: Vec<String> = Vec::with_capacity(self.path_to_code.len());
         let version = ver.to_string();
-        let mut threads = vec![];
+        let mut threads: Vec<JoinHandle<Result<String, VyperErrors>>> = vec![];
         for i in 0..self.path_to_code.len() {
             let paths = Arc::clone(&path);
             let bin = Arc::clone(&vy);
@@ -562,13 +566,15 @@ impl Vypers {
                     }
                     Ok(out)
                 } else {
-                    bail!(String::from_utf8_lossy(&compiler_output.stderr).to_string())
+                    Err(VyperErrors::CompilerError(
+                        String::from_utf8_lossy(&compiler_output.stderr).to_string(),
+                    ))?
                 }
             });
             threads.push(cthread);
         }
         for child_thread in threads {
-            let x = child_thread.await.unwrap()?;
+            let x = child_thread.await??;
             out_vec.push(x);
         }
         self.bytecode = Some(out_vec);
@@ -576,11 +582,11 @@ impl Vypers {
     }
 
     /// Generates ABIs for each vyper contract concurrently
-    pub async fn gen_abi_many(&mut self) -> Result<(), Box<dyn Error + Send + Sync>> {
+    pub async fn gen_abi_many(&mut self) -> Result<(), VyperErrors> {
         let abi_path = Arc::new(self.abi.clone());
         let vy = Arc::new(self.get_vyper());
         let c_path = Arc::new(self.path_to_code.clone());
-        let mut threads = vec![];
+        let mut threads: Vec<JoinHandle<Result<(), VyperErrors>>> = vec![];
         for i in 0..c_path.len() {
             let c = Arc::clone(&c_path);
             let abi = Arc::clone(&abi_path);
@@ -598,21 +604,21 @@ impl Vypers {
                     let file = File::create(&abi[i])?;
                     to_writer_pretty(file, &json)?;
                 } else {
-                    bail!(String::from_utf8_lossy(&compiler_output.stderr).to_string())
+                    Err(VyperErrors::CompilerError(String::from_utf8_lossy(&compiler_output.stderr).to_string()))?
                 }
                 Ok(())
             });
             threads.push(cthread);
         }
         for child_thread in threads {
-            child_thread.await.unwrap()?
+            child_thread.await??
         }
         Ok(())
     }
 
-    pub async fn get_abi_many(&self) -> Result<Vec<Value>, Box<dyn Error>> {
+    pub async fn get_abi_many(&self) -> Result<Vec<Value>, VyperErrors> {
         let c_path = Arc::new(self.path_to_code.clone());
-        let mut threads = vec![];
+        let mut threads: Vec<JoinHandle<Result<Value, VyperErrors>>> = vec![];
         let vy = Arc::new(self.get_vyper());
         for i in 0..self.path_to_code.len() {
             let c = Arc::clone(&c_path);
@@ -629,7 +635,7 @@ impl Vypers {
                     ))?;
                     Ok(json)
                 } else {
-                    bail!(String::from_utf8_lossy(&compiler_output.stderr).to_string())
+                    Err(VyperErrors::CompilerError(String::from_utf8_lossy(&compiler_output.stderr).to_string()))?
                 }
             });
             threads.push(cthread);

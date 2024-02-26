@@ -1,0 +1,27 @@
+{
+  "configurations": {
+    "<name>: Launch": {
+      "adapter": "CodeLLDB",
+      "configuration": {
+        "name": "<name>",
+        "type": "lldb",
+        "request": "launch",
+        "program": "${workspaceRoot}/target/debug/deps/vyper_rs-686403a730734cd8",
+        "cwd": "${workspaceRoot}",
+        "externalConsole": true,
+        "stopAtEntry": true,
+        "MIMode": "gdb"
+      }
+    },
+    "<name>: Attach": {
+      "adapter": "CodeLLDB", 
+      "configuration": {
+        "name": "<name>: Attach",
+        "type": "lldb",
+        "request": "attach",
+        "program": "${workspaceRoot}/target/debug/deps/vyper_rs-686403a730734cd8",
+        "MIMode": "gdb"
+      }
+    }
+  }
+}

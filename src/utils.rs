@@ -1,16 +1,12 @@
 //! Utilities offered by the crate.
 
 use std::{
-    // error::Error,
-    env,
-    fs::{self, read_dir, File, ReadDir},
+    fs::read_dir,
     io::Error,
-    path::{Path, PathBuf},
-    sync::Arc,
+    path::PathBuf,
 };
 
-use anyhow::{bail, Result};
-use tokio::task::JoinHandle;
+use crate::vyper_errors::VyperErrors;
 
 /// Parses the ERC-5202 bytecode container format for indexing blueprint contracts.
 ///
@@ -21,19 +17,26 @@ use tokio::task::JoinHandle;
 /// "ERC-5202: Blueprint contract format," Ethereum Improvement Proposals, no. 5202, June 2022. [Online serial].
 /// Available: https://eips.ethereum.org/EIPS/eip-5202.
 
-pub fn parse_blueprint(bytecode: &[u8]) -> Result<(u8, Option<Vec<u8>>, Vec<u8>)> {
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Blueprint {
+    pub erc_version: u8,
+    pub preamble_data: Option<Vec<u8>>,
+    pub initcode: Vec<u8>,
+}
+
+pub fn parse_blueprint(bytecode: &[u8]) -> Result<Blueprint, VyperErrors> {
     if bytecode.is_empty() {
-        bail!("Empty Bytecode");
+        Err(VyperErrors::BlueprintError("Empty Bytecode".to_owned()))?
     }
     if &bytecode[0..2] != b"\xFE\x71" {
-        bail!("Not a blueprint!");
+        Err(VyperErrors::BlueprintError("Not a blueprint!".to_owned()))?
     }
 
     let erc_version = (&bytecode[2] & 0b11111100) >> 2;
     let n_length_bytes = &bytecode[2] & 0b11;
 
     if n_length_bytes == 0b11 {
-        bail!("Reserved bits are set");
+        Err(VyperErrors::BlueprintError("Reserved bits are set".to_owned()))?
     }
 
     let size_temp = bytecode[3..(3 + n_length_bytes as usize)].to_vec();
@@ -43,7 +46,7 @@ pub fn parse_blueprint(bytecode: &[u8]) -> Result<(u8, Option<Vec<u8>>, Vec<u8>)
             let size: String = hex::encode(&size_temp);
             match u32::from_str_radix(&size, size_temp.len() as u32 * 8u32) {
                 Ok(num) => num,
-                Err(e) => bail!(e),
+                Err(e) => Err(VyperErrors::IntParseError(e))?,
             }
         }
     };
@@ -60,18 +63,18 @@ pub fn parse_blueprint(bytecode: &[u8]) -> Result<(u8, Option<Vec<u8>>, Vec<u8>)
         bytecode[3 + n_length_bytes as usize + data_length as usize..].to_vec();
     match initcode.is_empty() {
         true => {
-            bail!("Empty Initcode!")
+            Err(VyperErrors::BlueprintError("Empty Initcode!".to_owned()))?
         }
-        false => Ok((erc_version, preamble_data, initcode)),
+        false => Ok(Blueprint{erc_version, preamble_data, initcode}),
     }
 }
 
 pub async fn scan_workspace(root: PathBuf) -> Result<Vec<PathBuf>, Error> {
     let cwd = root.clone();
     let h1 = tokio::spawn(async move { get_contracts_in_dir(cwd) });
-    let hh_ape = root.join("/contracts");
+    let hh_ape = root.join("contracts");
     let h2 = tokio::spawn(async move { get_contracts_in_dir(hh_ape) });
-    let foundry = root.join("/src");
+    let foundry = root.join("src");
     let h3 = tokio::spawn(async move { get_contracts_in_dir(foundry) });
     let mut res = Vec::new();
     for i in [h1, h2, h3].into_iter() {

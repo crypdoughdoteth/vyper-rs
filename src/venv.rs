@@ -13,8 +13,10 @@
 //! may use the namespace to access methods for use inside the venv. Methods inside the Venv<Ready>
 //! namespace are mostly equivalent to the ones in the Vyper module, thus you can rely on the
 //! documentation for these methods inside the Venv module.
-use crate::vyper::{Vyper, Vypers};
-use anyhow::bail;
+use crate::{
+    vyper::{Vyper, Vypers},
+    vyper_errors::VyperErrors,
+};
 use std::{
     path::{Path, PathBuf},
     process::Command,
@@ -113,7 +115,7 @@ impl<'a> Venv<'a, NotInitialized> {
 
     /// Init will check whether or not a venv was created by this program
     /// If it was not, we will create one
-    pub fn init(self) -> anyhow::Result<Venv<'a, Initialized>> {
+    pub fn init(self) -> Result<Venv<'a, Initialized>, VyperErrors> {
         match self.venv_path.exists() {
             true => Ok(Venv {
                 venv_path: self.venv_path,
@@ -122,7 +124,9 @@ impl<'a> Venv<'a, NotInitialized> {
             false => {
                 let a = Command::new("mkdir").arg(self.venv_path).output()?;
                 if !a.status.success() {
-                    bail!("{}", String::from_utf8_lossy(&a.stderr).to_string());
+                    Err(VyperErrors::DirError(
+                        String::from_utf8_lossy(&a.stderr).to_string(),
+                    ))?
                 }
 
                 let b = Command::new("python3")
@@ -131,7 +135,9 @@ impl<'a> Venv<'a, NotInitialized> {
                     .arg(self.venv_path)
                     .output()?;
                 if !b.status.success() {
-                    bail!("{}", String::from_utf8_lossy(&b.stderr).to_string());
+                    Err(VyperErrors::VenvError(
+                        String::from_utf8_lossy(&b.stderr).to_string(),
+                    ))?
                 }
 
                 Ok(Venv {
@@ -142,7 +148,7 @@ impl<'a> Venv<'a, NotInitialized> {
         }
     }
     /// For the psychopaths that decide to globally rawdog pip on their PC  
-    fn skip() -> Venv<'a, Skip> {
+    pub fn skip() -> Venv<'a, Skip> {
         Venv {
             venv_path: Path::new("./venv"),
             state: std::marker::PhantomData::<Skip>,
@@ -152,7 +158,7 @@ impl<'a> Venv<'a, NotInitialized> {
 impl<'a> Venv<'a, Initialized> {
     /// Installs vyper into virtual environment
     /// Optional argument for the version of vyper to be installed
-    pub fn ivyper_venv(self, ver: Option<&'a str>) -> anyhow::Result<Venv<'a, Ready>> {
+    pub fn ivyper_venv(self, ver: Option<&'a str>) -> Result<Venv<'a, Ready>, VyperErrors> {
         match ver {
             Some(version) => {
                 if cfg!(target_os = "windows") {
@@ -161,7 +167,9 @@ impl<'a> Venv<'a, Initialized> {
                         .arg(format!("vyper=={}", version))
                         .output()?;
                     if !c.status.success() {
-                        bail!("{}", String::from_utf8_lossy(&c.stderr).to_string());
+                        Err(VyperErrors::CompilerError(
+                            String::from_utf8_lossy(&c.stderr).to_string(),
+                        ))?
                     }
                     println!("Version {} of Vyper has been installed", version);
                 } else {
@@ -170,7 +178,9 @@ impl<'a> Venv<'a, Initialized> {
                         .arg(format!("vyper=={}", version))
                         .output()?;
                     if !c.status.success() {
-                        bail!("{}", String::from_utf8_lossy(&c.stderr).to_string());
+                        Err(VyperErrors::PipError(
+                            String::from_utf8_lossy(&c.stderr).to_string(),
+                        ))?
                     }
                     println!("Version {} of Vyper has been installed", version);
                 }
@@ -187,7 +197,9 @@ impl<'a> Venv<'a, Initialized> {
                         .arg("vyper")
                         .output()?;
                     if !c.status.success() {
-                        bail!("{}", String::from_utf8_lossy(&c.stderr).to_string());
+                        Err(VyperErrors::PipError(
+                            String::from_utf8_lossy(&c.stderr).to_string(),
+                        ))?
                     }
                     println!("The latest version of vyper has been installed");
                 } else {
@@ -196,7 +208,9 @@ impl<'a> Venv<'a, Initialized> {
                         .arg("vyper")
                         .output()?;
                     if !c.status.success() {
-                        bail!("{}", String::from_utf8_lossy(&c.stderr).to_string());
+                        Err(VyperErrors::PipError(
+                            String::from_utf8_lossy(&c.stderr).to_string(),
+                        ))?
                     }
                     println!("The latest version of vyper has been installed");
                 }
@@ -209,26 +223,26 @@ impl<'a> Venv<'a, Initialized> {
     }
     /// Check to see if Vyper is installed in a Venv. If so, transition state to Ready and
     /// access to the methods of this namespace.
-    pub fn try_ready(self) -> anyhow::Result<Venv<'a, Ready>> {
+    pub fn try_ready(self) -> Result<Venv<'a, Ready>, VyperErrors> {
         if cfg!(target_os = "windows") {
-            match Path::new("./venv/scripts/vyper").exists() {
+            match self.venv_path.join("scripts/vyper").exists() {
                 true => Ok(Venv {
                     venv_path: self.venv_path,
                     state: std::marker::PhantomData::<Ready>,
                 }),
-                false => {
-                    bail!("Vyper was not installed in venv")
-                }
+                false => Err(VyperErrors::CompilerError(
+                    "Vyper was not installed in venv".to_owned(),
+                ))?,
             }
         } else {
-            match Path::new("./venv/bin/vyper").exists() {
+            match self.venv_path.join("bin/vyper").exists() {
                 true => Ok(Venv {
                     venv_path: self.venv_path,
                     state: std::marker::PhantomData::<Ready>,
                 }),
-                false => {
-                    bail!("Vyper was not installed in venv")
-                }
+                false => Err(VyperErrors::CompilerError(
+                    "Vyper was not installed in venv".to_owned(),
+                ))?,
             }
         }
     }
@@ -237,7 +251,7 @@ impl<'a> Venv<'a, Initialized> {
 impl<'a> Venv<'a, Skip> {
     /// Installs vyper compiler globally, without the protection of a venv
     /// Optional argument for the version of vyper to be installed
-    pub fn ivyper_pip(self, ver: Option<&'a str>) -> anyhow::Result<Venv<Complete>> {
+    pub fn ivyper_pip(self, ver: Option<&'a str>) -> Result<Venv<Complete>, VyperErrors> {
         match ver {
             Some(version) => {
                 let c = Command::new("pip3")
@@ -245,14 +259,18 @@ impl<'a> Venv<'a, Skip> {
                     .arg(format!("vyper=={}", version))
                     .output()?;
                 if !c.status.success() {
-                    bail!("{}", String::from_utf8_lossy(&c.stderr).to_string());
+                    Err(VyperErrors::PipError(
+                        String::from_utf8_lossy(&c.stderr).to_string(),
+                    ))?
                 }
                 println!("Version {} of Vyper has been installed", version);
             }
             None => {
                 let c = Command::new("pip3").arg("install").arg("vyper").output()?;
                 if !c.status.success() {
-                    bail!("{}", String::from_utf8_lossy(&c.stderr).to_string());
+                    Err(VyperErrors::PipError(
+                        String::from_utf8_lossy(&c.stderr).to_string(),
+                    ))?
                 }
                 println!("The Latest Version of Vyper has been installed");
             }
@@ -269,63 +287,59 @@ impl<'a> Venv<'a, Skip> {
     }
 
     /// Transition to Complete if the Vyper compiler is installed globally
-    pub fn try_ready(self) -> anyhow::Result<Venv<'a, Complete>> {
+    pub fn try_ready(self) -> Result<Venv<'a, Complete>, VyperErrors> {
         match Self::global_exists() {
             true => Ok(Venv {
                 venv_path: self.venv_path,
                 state: std::marker::PhantomData::<Complete>,
             }),
-            false => {
-                bail!("Vyper not installed")
-            }
+            false => Err(VyperErrors::CompilerError("Vyper not installed".to_owned()))?,
         }
     }
 }
 
 impl<'a> Venv<'a, Complete> {
-    fn vyper(self, path_to_contract: &'a Path) -> Vyper<'a> {
+    pub fn vyper(self, path_to_contract: &'a Path) -> Vyper<'a> {
         Vyper::new(path_to_contract)
     }
 
-    fn vypers(self, paths: Vec<PathBuf>) -> Vypers {
+    pub fn vypers(self, paths: Vec<PathBuf>) -> Vypers {
         Vypers::new(paths)
     }
 
-    fn vyper_with_abi(self, path: &'a Path, abi: PathBuf) -> Vyper<'a> {
+    pub fn vyper_with_abi(self, path: &'a Path, abi: PathBuf) -> Vyper<'a> {
         Vyper::with_abi(path, abi)
     }
 
-    fn vypers_from_dir(self, path: PathBuf) -> Option<Vypers> {
+    pub fn vypers_from_dir(self, path: PathBuf) -> Option<Vypers> {
         Vypers::in_dir(path)
     }
 
-    async fn vypers_from_workspace(self, path: PathBuf) -> Option<Vypers> {
+    pub async fn vypers_from_workspace(self, path: PathBuf) -> Option<Vypers> {
         Vypers::in_workspace(path).await
     }
 }
 
 impl<'a> Venv<'a, Ready> {
-    fn vyper(self, path_to_contract: &'a Path) -> Vyper<'a> {
+    pub fn vyper(self, path_to_contract: &'a Path) -> Vyper<'a> {
         Vyper::with_venv(path_to_contract, self.venv_path)
     }
 
-    fn vypers(self, paths: Vec<PathBuf>) -> Vypers {
+    pub fn vypers(self, paths: Vec<PathBuf>) -> Vypers {
         Vypers::with_venv(paths, self.venv_path)
     }
 
-    fn vyper_with_abi(self, path: &'a Path, abi: PathBuf) -> Vyper<'a> {
+    pub fn vyper_with_abi(self, path: &'a Path, abi: PathBuf) -> Vyper<'a> {
         Vyper::with_venv_and_abi(path, self.venv_path, abi)
     }
 
-    fn vypers_from_dir(self, path: PathBuf) -> Option<Vypers> {
+    pub fn vypers_from_dir(self, path: PathBuf) -> Option<Vypers> {
         let vyps = Vypers::in_dir(path);
-        let ret = vyps.map(|e| e.set_venv(self.venv_path.to_path_buf()));
-        ret
+        vyps.map(|e| e.set_venv(self.venv_path.to_path_buf()))
     }
 
-    async fn vypers_from_workspace(self, path: PathBuf) -> Option<Vypers> {
+    pub async fn vypers_from_workspace(self, path: PathBuf) -> Option<Vypers> {
         let vyps = Vypers::in_workspace(path).await;
-        let ret = vyps.map(|e| e.set_venv(self.venv_path.to_path_buf()));
-        ret
+        vyps.map(|e| e.set_venv(self.venv_path.to_path_buf()))
     }
 }

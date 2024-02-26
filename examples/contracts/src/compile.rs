@@ -4,8 +4,7 @@ use vyper_rs::vyper::Vyper;
 
 pub fn compile_and_generate_bindings() -> Result<(), Box<dyn Error>> {
     let cpath: PathBuf = PathBuf::from("../../multisig.vy");
-    let abi: PathBuf = PathBuf::from("./my_abi.json");
-    let contract = Vyper::new(cpath, abi);
+    let contract = Vyper::new(&cpath);
     contract.gen_abi()?;
     println!("Generating bindings for {contract}\n");
 
