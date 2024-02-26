@@ -39,7 +39,7 @@ impl<'a> Display for Vyper<'a> {
 }
 
 impl<'a> Vyper<'a> {
-    /// Constructor function that takes in the path to your vyper contract and the _desired path/{name}.json_ for your ABI  
+    /// Constructor function that takes in the path to your vyper contract 
     pub fn new(path: &'a Path) -> Self {
         let np = path.with_extension("json"); 
         Self {
@@ -193,7 +193,7 @@ impl<'a> Vyper<'a> {
         let compiler_output = Command::new(self.get_vyper())
             .arg("-f")
             .arg("abi")
-            .arg(&self.path_to_code)
+            .arg(self.path_to_code)
             .output()?;
 
         if compiler_output.status.success() {
@@ -217,7 +217,7 @@ impl<'a> Vyper<'a> {
         let compiler_output = Command::new(self.get_vyper())
             .arg("-f")
             .arg("abi")
-            .arg(&self.path_to_code)
+            .arg(self.path_to_code)
             .output()?;
 
         if compiler_output.status.success() {
@@ -440,10 +440,11 @@ impl Vypers {
     }
 
     pub fn new(paths: Vec<PathBuf>) -> Self {
+        let np = paths.iter().map(|e| e.with_extension("json")).collect();
         Self {
-            path_to_code: paths.clone(),
+            path_to_code: paths,
             bytecode: None,
-            abi: paths.iter().map(|e| e.with_extension("json")).collect(),
+            abi: np,
             venv: None,
         }
     }

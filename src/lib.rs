@@ -23,7 +23,6 @@ mod test {
     fn basic() {
         let path = PathBuf::from("./multisig.vy");
         let mut vyper_contract = Vyper::new(&path);
-        println!("\n{:#?}\n", vyper_contract.abi);
         vyper_contract.compile().unwrap();
         vyper_contract.gen_abi().unwrap();
     }

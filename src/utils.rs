@@ -69,6 +69,8 @@ pub fn parse_blueprint(bytecode: &[u8]) -> Result<Blueprint, VyperErrors> {
     }
 }
 
+/// Scans current directory, looks for /contracts or /src folder and searches them too if they
+/// exist. Returns a Vec of PathBufs to any Vyper contract found. 
 pub async fn scan_workspace(root: PathBuf) -> Result<Vec<PathBuf>, Error> {
     let cwd = root.clone();
     let h1 = tokio::spawn(async move { get_contracts_in_dir(cwd) });
@@ -87,6 +89,8 @@ pub async fn scan_workspace(root: PathBuf) -> Result<Vec<PathBuf>, Error> {
     Ok(res.into_iter().flatten().collect::<Vec<PathBuf>>())
 }
 
+/// Scans current directory, looks for any vyper contracts and returns a Vec of PathBufs to any
+/// contracts found. 
 pub fn get_contracts_in_dir(dir: PathBuf) -> Result<Vec<PathBuf>, Error> {
     let files = read_dir(dir)?;
     let contracts = files.into_iter().try_fold(
