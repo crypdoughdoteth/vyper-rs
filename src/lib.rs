@@ -25,6 +25,7 @@ mod test {
         let mut vyper_contract = Vyper::new(&path);
         vyper_contract.compile().unwrap();
         vyper_contract.gen_abi().unwrap();
+        assert!(vyper_contract.bytecode.unwrap().starts_with("0x"));
     }
 
     #[test]

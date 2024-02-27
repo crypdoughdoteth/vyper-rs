@@ -39,9 +39,9 @@ impl<'a> Display for Vyper<'a> {
 }
 
 impl<'a> Vyper<'a> {
-    /// Constructor function that takes in the path to your vyper contract 
+    /// Constructor function that takes in the path to your vyper contract
     pub fn new(path: &'a Path) -> Self {
-        let np = path.with_extension("json"); 
+        let np = path.with_extension("json");
         Self {
             path_to_code: path,
             bytecode: None,
@@ -137,10 +137,15 @@ impl<'a> Vyper<'a> {
             .output()?;
         if compiler_output.status.success() {
             let mut out = String::from_utf8_lossy(&compiler_output.stdout).to_string();
-            for _ in 0..2 {
+            for _ in 0..1 {
                 out.pop();
             }
-            self.bytecode = Some(out);
+            if !out.starts_with("0x") {
+                self.bytecode = out.split(":").last().map(|s| s.to_owned());
+            } else {
+                self.bytecode = Some(out);
+            }
+
             Ok(())
         } else {
             Err(VyperErrors::CompilerError(
@@ -156,8 +161,15 @@ impl<'a> Vyper<'a> {
             .arg(self.path_to_code)
             .output()?;
         if compiler_output.status.success() {
-            let out = String::from_utf8_lossy(&compiler_output.stdout).to_string();
-            self.bytecode = Some(out);
+            let mut out = String::from_utf8_lossy(&compiler_output.stdout).to_string();
+            for _ in 0..1 {
+                out.pop();
+            }
+            if !out.starts_with("0x") {
+                self.bytecode = out.split(":").last().map(|s| s.to_owned());
+            } else {
+                self.bytecode = Some(out);
+            }
             Ok(())
         } else {
             Err(VyperErrors::CompilerError(
@@ -176,11 +188,14 @@ impl<'a> Vyper<'a> {
 
         if compiler_output.status.success() {
             let mut out = String::from_utf8_lossy(&compiler_output.stdout).to_string();
-            for _ in 0..2 {
+            for _ in 0..1 {
                 out.pop();
             }
-            self.bytecode = Some(out);
-
+            if !out.starts_with("0x") {
+                self.bytecode = out.split(":").last().map(|s| s.to_owned());
+            } else {
+                self.bytecode = Some(out);
+            }
             Ok(())
         } else {
             Err(VyperErrors::CompilerError(
@@ -519,10 +534,19 @@ impl Vypers {
                 if compiler_output.status.success() {
                     let mut out =
                         String::from_utf8_lossy(&compiler_output.stdout).to_string();
-                    for _ in 0..2 {
+
+                    for _ in 0..1 {
                         out.pop();
                     }
-                    Ok(out)
+                    if !out.starts_with("0x") {
+                        if let Some(e) = out.split(":").last() {
+                            Ok(e.to_owned())
+                        } else {
+                            Err(VyperErrors::StringParsingError)
+                        }
+                    } else {
+                       Ok(out) 
+                    }
                 } else {
                     Err(VyperErrors::CompilerError(
                         String::from_utf8_lossy(&compiler_output.stderr).to_string(),
@@ -540,10 +564,7 @@ impl Vypers {
     }
 
     /// Compile multiple vyper contracts concurrently on new threads, updates the ABI field in Vypers. `Ver` arg is for specifying EVM version to compile each contract to.
-    pub async fn compile_many_ver(
-        &mut self,
-        ver: Evm,
-    ) -> Result<(), VyperErrors> {
+    pub async fn compile_many_ver(&mut self, ver: Evm) -> Result<(), VyperErrors> {
         let path = Arc::new(self.path_to_code.clone());
         let vy = Arc::new(self.get_vyper());
         let mut out_vec: Vec<String> = Vec::with_capacity(self.path_to_code.len());
@@ -562,10 +583,18 @@ impl Vypers {
                 if compiler_output.status.success() {
                     let mut out =
                         String::from_utf8_lossy(&compiler_output.stdout).to_string();
-                    for _ in 0..2 {
+                    for _ in 0..1 {
                         out.pop();
                     }
-                    Ok(out)
+                    if !out.starts_with("0x") {
+                        if let Some(e) = out.split(":").last() {
+                            Ok(e.to_owned())
+                        } else {
+                            Err(VyperErrors::StringParsingError)
+                        }
+                    } else {
+                       Ok(out) 
+                    }
                 } else {
                     Err(VyperErrors::CompilerError(
                         String::from_utf8_lossy(&compiler_output.stderr).to_string(),
@@ -605,7 +634,9 @@ impl Vypers {
                     let file = File::create(&abi[i])?;
                     to_writer_pretty(file, &json)?;
                 } else {
-                    Err(VyperErrors::CompilerError(String::from_utf8_lossy(&compiler_output.stderr).to_string()))?
+                    Err(VyperErrors::CompilerError(
+                        String::from_utf8_lossy(&compiler_output.stderr).to_string(),
+                    ))?
                 }
                 Ok(())
             });
@@ -636,7 +667,9 @@ impl Vypers {
                     ))?;
                     Ok(json)
                 } else {
-                    Err(VyperErrors::CompilerError(String::from_utf8_lossy(&compiler_output.stderr).to_string()))?
+                    Err(VyperErrors::CompilerError(
+                        String::from_utf8_lossy(&compiler_output.stderr).to_string(),
+                    ))?
                 }
             });
             threads.push(cthread);

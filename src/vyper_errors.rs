@@ -13,6 +13,7 @@ pub enum VyperErrors {
     VenvError(String),
     BlueprintError(String),
     IntParseError(ParseIntError),
+    StringParsingError,
 }
 
 impl Display for VyperErrors {
@@ -20,7 +21,7 @@ impl Display for VyperErrors {
         match self {
             VyperErrors::IoError(err) => {
                 write!(f, "An error occured while using system IO: {}", err)
-            },
+            }
             VyperErrors::SerializationError(s) => write!(
                 f,
                 "An error occurred while serializing or deserializing data: {}",
@@ -28,11 +29,17 @@ impl Display for VyperErrors {
             ),
             VyperErrors::CompilerError(msg) => write!(f, "{}", msg),
             VyperErrors::PipError(msg) => write!(f, "{}", msg),
-            VyperErrors::ConcurrencyError(je) => write!(f, "Failed to join async tasks: {}", je),
+            VyperErrors::ConcurrencyError(je) => {
+                write!(f, "Failed to join async tasks: {}", je)
+            }
             VyperErrors::DirError(msg) => write!(f, "{}", msg),
             VyperErrors::VenvError(msg) => write!(f, "{}", msg),
             VyperErrors::BlueprintError(msg) => write!(f, "{}", msg),
             VyperErrors::IntParseError(e) => write!(f, "{}", e),
+            VyperErrors::StringParsingError => write!(
+                f,
+                "An error occurred while parsing bytecode from vyper compiler output"
+            ),
         }
     }
 }
